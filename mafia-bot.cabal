@@ -17,6 +17,14 @@ source-repository head
   type: git
   location: https://github.com/iokasimov/mafia-bot.git
 
+library
+  exposed-modules: Mafia.Configuration
+  build-depends: base == 4.*, transformers, text, warp, servant, servant-server,
+    telegram-api, http-client, http-client-tls, optparse-applicative, stm
+  default-extensions: BangPatterns, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving,
+    OverloadedStrings, RecordWildCards, ApplicativeDo, MultiParamTypeClasses, FlexibleInstances,
+    ScopedTypeVariables, TypeOperators, DataKinds, GADTs, FlexibleContexts, ViewPatterns
+
 executable bot
   main-is: Mafia/Bot.hs
   build-depends: base == 4.*, transformers, text, warp, servant, servant-server,
