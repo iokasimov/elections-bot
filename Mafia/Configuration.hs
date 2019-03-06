@@ -15,9 +15,9 @@ options = Arguments
 	<$> (Token . pack <$> argument str (metavar "TOKEN"))
 	<*> (ChatId . negate <$> argument auto (metavar "CHATID"))
 
-data Settings = Settings Token ChatId Manager (TVar [(Int, Int)])
+data Settings = Settings Token ChatId Manager (TVar (Maybe [(Int, Int)]))
 
 settings :: IO Settings
 settings = do
 	Arguments token chaid <- execParser $ info options fullDesc
-	Settings token chaid <$> newManager tlsManagerSettings <*> newTVarIO []
+	Settings token chaid <$> newManager tlsManagerSettings <*> newTVarIO Nothing
