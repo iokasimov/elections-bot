@@ -6,6 +6,7 @@ import Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, 
 import Network.HTTP.Client (Manager, newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Web.Telegram.API.Bot.API (Token (Token))
+import Web.Telegram.API.Bot.Data (User (..))
 import Web.Telegram.API.Bot.Requests (ChatId (ChatId))
 
 data Arguments = Arguments Token ChatId deriving Show
@@ -15,7 +16,7 @@ options = Arguments
 	<$> (Token . pack <$> argument str (metavar "TOKEN"))
 	<*> (ChatId . negate <$> argument auto (metavar "CHATID"))
 
-data Settings = Settings Token ChatId Manager (TVar (Maybe [(Int, Int)]))
+data Settings = Settings Token ChatId Manager (TVar (Maybe [(User, Int)]))
 
 settings :: IO Settings
 settings = do
