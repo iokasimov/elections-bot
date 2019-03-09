@@ -1,16 +1,19 @@
 module Main where
 
+import Control.Concurrent.Async (async)
+import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Network.Wai.Handler.Warp (run)
 import Servant (Capture, ReqBody, Proxy (Proxy), Server, JSON, Get, Post, type (:>), serve, err403, throwError)
+import Text.Read (readMaybe)
 import Web.Telegram.API.Bot.API (Token (Token))
-import Web.Telegram.API.Bot.Data (CallbackQuery (..), Chat (..), Message (..), Update (..))
+import Web.Telegram.API.Bot.Data (CallbackQuery (..), Chat (..), Message (..), Update (..), User (..))
 import Web.Telegram.API.Bot.Requests (ChatId (ChatId))
 
-import qualified Data.Text as T (take)
+import qualified Data.Text as T (take, unpack)
 
 import Mafia.Configuration (Settings (Settings), settings)
-import Mafia.Voting (primaries)
+import Mafia.Voting (primaries, vote)
 
 type API = "webhook" :> Capture "secret" Token :> ReqBody '[JSON] Update :> Post '[JSON] ()
 
@@ -21,7 +24,11 @@ server settings@(Settings token _ _ _) secret update = if secret == token
 webhook :: Settings -> Update -> IO ()
 webhook settings@(Settings _ (ChatId cid') _ _)
 	u@(Update { message = Just (Message { text = Just txt, entities = Just es, chat = Chat { chat_id = cid } }) }) =
-		if T.take 5 txt == "/vote" && cid' == cid then primaries settings (ChatId cid) es else pure ()
+		if T.take 5 txt == "/vote" && cid' == cid
+		then void . async $ primaries settings (ChatId cid) es
+		else pure ()
+webhook settings u@(Update { callback_query = Just (CallbackQuery { cq_from = User { user_id = who }, cq_data = Just candidate, cq_message = Just (Message { message_id = mid }) }) }) =
+		maybe (pure ()) (void . async . vote settings mid who) $ readMaybe (T.unpack candidate)
 webhook _ u = print u
 
 main = settings >>= run 8080 . serve (Proxy :: Proxy API) . server

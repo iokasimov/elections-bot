@@ -19,16 +19,16 @@ source-repository head
 
 library
   exposed-modules: Mafia.Configuration, Mafia.Voting
-  build-depends: base == 4.*, transformers, text, warp, servant, servant-server,
+  build-depends: base == 4.*, async, transformers, lens, text, warp, servant, servant-server,
     telegram-api, http-client, http-client-tls, optparse-applicative, stm
   default-extensions: BangPatterns, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving,
-    OverloadedStrings, RecordWildCards, ApplicativeDo, MultiParamTypeClasses, FlexibleInstances,
+    OverloadedStrings, RecordWildCards, ApplicativeDo, MultiParamTypeClasses, FlexibleInstances, TypeApplications,
     ScopedTypeVariables, TypeOperators, DataKinds, GADTs, FlexibleContexts, ViewPatterns, LambdaCase
 
 executable bot
   main-is: Mafia/Bot.hs
-  build-depends: base == 4.*, transformers, text, warp, servant, servant-server,
+  build-depends: base == 4.*, async, transformers, lens, text, warp, servant, servant-server,
     telegram-api, http-client, http-client-tls, optparse-applicative, stm
   default-extensions: BangPatterns, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving,
-    OverloadedStrings, RecordWildCards, ApplicativeDo, MultiParamTypeClasses, FlexibleInstances,
+    OverloadedStrings, RecordWildCards, ApplicativeDo, MultiParamTypeClasses, FlexibleInstances, TypeApplications,
     ScopedTypeVariables, TypeOperators, DataKinds, GADTs, FlexibleContexts, ViewPatterns, LambdaCase
