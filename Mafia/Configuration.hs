@@ -16,7 +16,9 @@ options = Arguments
 	<$> (Token . pack <$> argument str (metavar "TOKEN"))
 	<*> (ChatId . negate <$> argument auto (metavar "CHATID"))
 
-data Settings = Settings Token ChatId Manager (TVar (Maybe [(User, Int)]))
+type Votes = TVar (Maybe (Int, [(User, [User])]))
+
+data Settings = Settings Token ChatId Manager Votes
 
 settings :: IO Settings
 settings = do
