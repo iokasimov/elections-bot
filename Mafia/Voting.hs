@@ -1,4 +1,4 @@
-module Mafia.Voting (primaries, participate, vote) where
+module Mafia.Voting (initiate, participate, vote) where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.STM (atomically, modifyTVar', readTVar, writeTVar)
@@ -6,6 +6,7 @@ import Control.Lens (element, _2, (%~))
 import Control.Monad (void)
 import Data.Foldable (find)
 import Data.Function ((&))
+import Data.List (delete)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Text (Text, pack)
 import Web.Telegram.API.Bot.API.Edit (editMessageReplyMarkup)
@@ -18,13 +19,16 @@ import Web.Telegram.API.Bot.Responses (Response (..))
 
 import Mafia.Configuration (Settings (Settings))
 
+instance Eq User where
+	User uid _ _ _ _ == User uid' _ _ _ _ = uid == uid
+
 -- Voting takes place in two stages for 5 minutes:
 -- 1) Primaries: someone should initiate it, when putting `/vote` command
 -- 2) Participate: candidate should put `/participate` command in bot PM
 -- 3) Vote: all candidates can click on buttons with other candidates
 
-primaries :: Settings -> ChatId -> IO ()
-primaries settings@(Settings token (ChatId chatid) _ votes) (ChatId chatid') =
+initiate :: Settings -> ChatId -> IO ()
+initiate settings@(Settings token (ChatId chatid) _ votes) (ChatId chatid') =
 	if chatid /= chatid' then pure () else background settings where
 
 	background :: Settings -> IO ()
@@ -35,7 +39,7 @@ primaries settings@(Settings token (ChatId chatid) _ votes) (ChatId chatid') =
 			Right res -> do
 				let keyboard_msg_id = message_id . result $ res
 				atomically . writeTVar votes . Just $ (keyboard_msg_id, [])
-				threadDelay 60000000 -- wait for 1 minute
+				threadDelay 300000000 -- wait for 5 minutes
 				atomically $ modifyTVar' votes (const Nothing)
 				void $ sendMessage token ending_massage manager
 
@@ -91,9 +95,10 @@ candidates_table scores = pure . button <$> zip [0..] scores where
 		(fn <> " " <> maybe "" id ln <> " : " <> (pack . show . length $ n))
 		Nothing (Just . pack . show $ idx) Nothing Nothing Nothing Nothing
 
+-- If you already voted for this candidate, your vote will be removed
 cast_vote :: Int -> User -> [(User, [User])] -> [(User, [User])]
 cast_vote candidate_index voter votes = votes & element candidate_index . _2 %~
-	(\scores -> maybe (voter : scores) (const scores) . find ((==) (user_id voter) . user_id) $ scores)
+	(\scores -> maybe (voter : scores) (const $ delete voter scores) . find ((==) (user_id voter) . user_id) $ scores)
 
 update_scores :: [(User, [User])] -> ChatId -> Int -> EditMessageReplyMarkupRequest
 update_scores voters group_chatid keyboard_msg_id = EditMessageReplyMarkupRequest
