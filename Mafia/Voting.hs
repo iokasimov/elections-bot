@@ -9,12 +9,13 @@ import Data.Function ((&))
 import Data.List (delete)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Text (Text, pack)
-import Web.Telegram.API.Bot.API.Edit (editMessageReplyMarkup)
+import Web.Telegram.API.Bot.API (runClient)
+import Web.Telegram.API.Bot.API.Edit (deleteMessageM, editMessageReplyMarkup)
 import Web.Telegram.API.Bot.API.Messages (sendMessage)
 import Web.Telegram.API.Bot.Data (Chat (..), Message (..), MessageEntity (..)
 	, User (..), InlineKeyboardButton (..), InlineKeyboardMarkup (..))
 import Web.Telegram.API.Bot.Requests (ChatId (ChatId), ReplyKeyboard (..)
-	, EditMessageReplyMarkupRequest (..), SendMessageRequest (SendMessageRequest))
+	, DeleteMessageRequest (..), EditMessageReplyMarkupRequest (..), SendMessageRequest (SendMessageRequest))
 import Web.Telegram.API.Bot.Responses (Response (..))
 
 import Mafia.Configuration (Settings (Settings))
@@ -56,15 +57,15 @@ vote (Settings token group_chatid manager votes) msg_id voter candidate_index = 
 		Just (keyboard_msg_id, voters) -> void $ editMessageReplyMarkup token
 			(update_scores voters group_chatid keyboard_msg_id) manager
 
-participate :: Settings -> ChatId -> User -> IO ()
-participate (Settings token group_chatid manager votes) chatid user = do
+participate :: Settings -> ChatId -> Int -> User -> IO ()
+participate (Settings token group_chatid manager votes) chatid msgid user = do
 	atomically (readTVar votes) >>= \case
 		Nothing -> void $ sendMessage token (text_message chatid "Голосование не инициировано в чате мафии.") manager
 		Just (keyboard_msg_id, voters) -> do
 			let new_candidate = (user, []) : voters
 			atomically . writeTVar votes . Just . (,) keyboard_msg_id $ new_candidate
-			void $ sendMessage token (text_message chatid "Теперь вы можете выбирать и быть выбранным.") manager
 			void $ editMessageReplyMarkup token (update_scores new_candidate group_chatid keyboard_msg_id) manager
+			void $ runClient (deleteMessageM $ DeleteMessageRequest group_chatid msgid) token manager
 
 candidates_table :: [(User, [User])] -> [[InlineKeyboardButton]]
 candidates_table scores = pure . button <$> zip [0..] scores where

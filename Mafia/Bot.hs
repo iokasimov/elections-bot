@@ -22,8 +22,8 @@ server settings@(Settings token _ _ _) secret update = if secret == token
 	then liftIO $ webhook settings update else throwError err403
 
 webhook :: Settings -> Update -> IO ()
-webhook settings u@(Update { message = Just (Message { text = Just "/participate" , chat = Chat { chat_id = cid }, from = Just user }) }) =
-	void . async $ participate settings (ChatId cid) user
+webhook settings u@(Update { message = Just (Message { message_id = msgid, text = Just "/participate" , chat = Chat { chat_id = cid }, from = Just user }) }) =
+	void . async $ participate settings (ChatId cid) msgid user
 webhook settings@(Settings _ (ChatId cid') _ _) u@(Update { message = Just (Message { text = Just "/vote", chat = Chat { chat_id = cid } }) }) =
 		if cid' == cid then void . async $ initiate settings (ChatId cid) else pure ()
 webhook settings u@(Update { callback_query = Just (CallbackQuery { cq_from = user, cq_data = Just candidate, cq_message = Just (Message { message_id = mid }) }) }) =
