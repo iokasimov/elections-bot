@@ -1,5 +1,12 @@
 module Mafia.Configuration (Settings (..), settings) where
 
+import "base" Data.Int (Int)
+import "base" Data.Function ((.), ($))
+import "base" Data.Functor ((<$>))
+import "base" Control.Applicative ((<*>))
+import "base" Data.Maybe (Maybe (Nothing))
+import "base" System.IO (IO)
+import "base" Prelude (negate)
 import "stm" Control.Concurrent.STM (TVar, newTVarIO)
 import "optparse-applicative" Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
 import "http-client" Network.HTTP.Client (Manager, newManager)
@@ -9,7 +16,7 @@ import "telegram-api" Web.Telegram.API.Bot.Data (User (..))
 import "telegram-api" Web.Telegram.API.Bot.Requests (ChatId (ChatId))
 import "text" Data.Text (pack)
 
-data Arguments = Arguments Token ChatId deriving Show
+data Arguments = Arguments Token ChatId
 
 options :: Parser Arguments
 options = Arguments
