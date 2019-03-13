@@ -20,7 +20,7 @@ import Web.Telegram.API.Bot.Responses (Response (..))
 import Mafia.Configuration (Settings (Settings))
 
 instance Eq User where
-	User uid _ _ _ _ == User uid' _ _ _ _ = uid == uid
+	User uid _ _ _ _ _ == User uid' _ _ _ _ _ = uid == uid
 
 -- Voting takes place in two stages for 5 minutes:
 -- 1) Primaries: someone should initiate it, when putting `/vote` command
@@ -70,7 +70,7 @@ candidates_table :: [(User, [User])] -> [[InlineKeyboardButton]]
 candidates_table scores = pure . button <$> zip [0..] scores where
 
 	button :: (Int, (User, [User])) -> InlineKeyboardButton
-	button (idx, (User uid fn ln _ _, n)) = InlineKeyboardButton
+	button (idx, (User uid _ fn ln _ _, n)) = InlineKeyboardButton
 		(fn <> " " <> maybe "" id ln <> " : " <> (pack . show . length $ n))
 		Nothing (Just . pack . show $ idx) Nothing Nothing Nothing Nothing
 
