@@ -1,22 +1,22 @@
 module Mafia.Voting (initiate, participate, vote) where
 
-import Control.Concurrent (threadDelay)
-import Control.Concurrent.STM (atomically, modifyTVar', readTVar, writeTVar)
-import Control.Lens (element, _2, (%~))
-import Control.Monad (void)
-import Data.Foldable (find)
-import Data.Function ((&))
-import Data.List (delete)
-import Data.Semigroup (Semigroup ((<>)))
-import Data.Text (Text, pack)
-import Web.Telegram.API.Bot.API (runClient)
-import Web.Telegram.API.Bot.API.Edit (deleteMessageM, editMessageReplyMarkup)
-import Web.Telegram.API.Bot.API.Messages (sendMessage)
-import Web.Telegram.API.Bot.Data (Chat (..), Message (..), MessageEntity (..)
+import "stm" Control.Concurrent.STM (atomically, modifyTVar', readTVar, writeTVar)
+import "lens" Control.Lens (element, _2, (%~))
+import "base" Control.Concurrent (threadDelay)
+import "base" Control.Monad (void)
+import "base" Data.Foldable (find)
+import "base" Data.Function ((&))
+import "base" Data.List (delete)
+import "base" Data.Semigroup (Semigroup ((<>)))
+import "text" Data.Text (Text, pack)
+import "telegram-api" Web.Telegram.API.Bot.API (runClient)
+import "telegram-api" Web.Telegram.API.Bot.API.Edit (deleteMessageM, editMessageReplyMarkup)
+import "telegram-api" Web.Telegram.API.Bot.API.Messages (sendMessage)
+import "telegram-api" Web.Telegram.API.Bot.Data (Chat (..), Message (..), MessageEntity (..)
 	, User (..), InlineKeyboardButton (..), InlineKeyboardMarkup (..))
-import Web.Telegram.API.Bot.Requests (ChatId (ChatId), ReplyKeyboard (..)
+import "telegram-api" Web.Telegram.API.Bot.Requests (ChatId (ChatId), ReplyKeyboard (..)
 	, DeleteMessageRequest (..), EditMessageReplyMarkupRequest (..), SendMessageRequest (SendMessageRequest))
-import Web.Telegram.API.Bot.Responses (Response (..))
+import "telegram-api" Web.Telegram.API.Bot.Responses (Response (..))
 
 import Mafia.Configuration (Settings (Settings))
 
@@ -28,24 +28,21 @@ instance Eq User where
 -- 2) Participate: candidate should put `/participate` command in bot PM
 -- 3) Vote: all candidates can click on buttons with other candidates
 
-initiate :: Settings -> ChatId -> IO ()
-initiate settings@(Settings token (ChatId chatid) _ votes) (ChatId chatid') =
-	if chatid /= chatid' then pure () else background settings where
-
-	background :: Settings -> IO ()
-	background (Settings token chatid manager votes) = atomically (readTVar votes) >>= \case
-		Just _ -> void $ sendMessage token (text_message chatid "Идёт голосование...") manager
-		Nothing -> sendMessage token start_voting_message manager >>= \case
-			Left err -> print err
-			Right res -> do
-				let keyboard_msg_id = message_id . result $ res
-				atomically . writeTVar votes . Just $ (keyboard_msg_id, [])
-				threadDelay 300000000 -- wait for 5 minutes
-				atomically $ modifyTVar' votes (const Nothing)
-				void $ sendMessage token (text_message chatid "Голосование завершено.") manager
+initiate :: Settings -> IO ()
+initiate settings@(Settings token chatid manager votes) = atomically (readTVar votes) >>= \case
+	Just _ -> void $ sendMessage token (text_message chatid "Идёт голосование...") manager
+	Nothing -> sendMessage token start_voting_message manager >>= \case
+		Left err -> print err
+		Right res -> do
+			let keyboard_msg_id = message_id . result $ res
+			atomically . writeTVar votes . Just $ (keyboard_msg_id, [])
+			threadDelay 30000000 -- wait for 5 minutes
+			atomically $ modifyTVar' votes (const Nothing)
+			void $ sendMessage token (text_message chatid "Голосование завершено.") manager
+	where
 
 	start_voting_message :: SendMessageRequest
-	start_voting_message = SendMessageRequest (ChatId chatid)
+	start_voting_message = SendMessageRequest chatid
 		"Голосование началось - в течении следующих 5 минут вы можете указать игроков, с которыми вы хотели бы поиграть."
 		Nothing Nothing Nothing Nothing (Just . ReplyInlineKeyboardMarkup . candidates_table $ [])
 
@@ -57,10 +54,10 @@ vote (Settings token group_chatid manager votes) msg_id voter candidate_index = 
 		Just (keyboard_msg_id, voters) -> void $ editMessageReplyMarkup token
 			(update_scores voters group_chatid keyboard_msg_id) manager
 
-participate :: Settings -> ChatId -> Int -> User -> IO ()
-participate (Settings token group_chatid manager votes) chatid msgid user = do
+participate :: Settings -> Int -> User -> IO ()
+participate (Settings token group_chatid manager votes) msgid user = do
 	atomically (readTVar votes) >>= \case
-		Nothing -> void $ sendMessage token (text_message chatid "Голосование не инициировано в чате мафии.") manager
+		Nothing -> void $ sendMessage token (text_message group_chatid "Голосование не инициировано в чате мафии.") manager
 		Just (keyboard_msg_id, voters) -> do
 			let new_candidate = (user, []) : voters
 			atomically . writeTVar votes . Just . (,) keyboard_msg_id $ new_candidate

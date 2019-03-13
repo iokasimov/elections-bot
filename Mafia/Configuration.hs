@@ -1,13 +1,13 @@
 module Mafia.Configuration (Settings (..), settings) where
 
-import Control.Concurrent.STM (TVar, newTVarIO)
-import Data.Text (pack)
-import Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
-import Network.HTTP.Client (Manager, newManager)
-import Network.HTTP.Client.TLS (tlsManagerSettings)
-import Web.Telegram.API.Bot.API (Token (Token))
-import Web.Telegram.API.Bot.Data (User (..))
-import Web.Telegram.API.Bot.Requests (ChatId (ChatId))
+import "stm" Control.Concurrent.STM (TVar, newTVarIO)
+import "optparse-applicative" Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
+import "http-client" Network.HTTP.Client (Manager, newManager)
+import "http-client-tls" Network.HTTP.Client.TLS (tlsManagerSettings)
+import "telegram-api" Web.Telegram.API.Bot.API (Token (Token))
+import "telegram-api" Web.Telegram.API.Bot.Data (User (..))
+import "telegram-api" Web.Telegram.API.Bot.Requests (ChatId (ChatId))
+import "text" Data.Text (pack)
 
 data Arguments = Arguments Token ChatId deriving Show
 
