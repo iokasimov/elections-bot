@@ -16,6 +16,8 @@ import "telegram-api" Web.Telegram.API.Bot.Data (User (..))
 import "telegram-api" Web.Telegram.API.Bot.Requests (ChatId (ChatId))
 import "text" Data.Text (pack)
 
+import Mafia.State (Votes)
+
 data Arguments = Arguments Token ChatId
 
 options :: Parser Arguments
@@ -23,9 +25,7 @@ options = Arguments
 	<$> (Token . pack <$> argument str (metavar "TOKEN"))
 	<*> (ChatId . negate <$> argument auto (metavar "CHATID"))
 
-type Votes = TVar (Maybe (Int, [(User, [User])]))
-
-data Settings = Settings Token ChatId Manager Votes
+data Settings = Settings Token ChatId Manager (TVar Votes)
 
 settings :: IO Settings
 settings = do
