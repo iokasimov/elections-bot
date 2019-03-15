@@ -6,15 +6,14 @@ import "base" Control.Concurrent (threadDelay)
 import "base" Control.Monad (void, (>>=))
 import "base" Data.Int (Int)
 import "base" Data.Either (Either (Left, Right))
-import "base" Data.Function (const, flip, id, (.), ($), (&))
-import "base" Data.Functor ((<$>))
 import "base" Data.Traversable (traverse)
 import "base" Data.Tuple (uncurry)
-import "base" Data.List (length, zip)
+import "base" Data.List (length, map, zip)
 import "base" Data.Maybe (Maybe (Just, Nothing), maybe)
 import "base" Data.Semigroup (Semigroup ((<>)))
 import "base" System.IO (IO, print)
 import "base" Text.Show (show)
+import "pandora" Pandora.Core.Morphism (identity, (.), ($), (!), (?))
 import "stm" Control.Concurrent.STM (atomically, modifyTVar', readTVar, writeTVar)
 import "telegram-api" Web.Telegram.API.Bot.API (runClient)
 import "telegram-api" Web.Telegram.API.Bot.API.Edit (deleteMessageM, editMessageReplyMarkup)
@@ -43,7 +42,7 @@ initiate settings@(Settings token chatid manager votes) = atomically (readTVar v
 			let keyboard_msg_id = message_id . result $ res
 			atomically . writeTVar votes $ start keyboard_msg_id
 			threadDelay 300000000 -- Wait all votes for 5 minutes
-			atomically $ modifyTVar' votes (const Nothing) -- Voting is over
+			atomically $ modifyTVar' votes (Nothing !) -- Voting is over
 			void $ sendMessage token (text_message chatid "Голосование завершено.") manager
 	where
 
@@ -56,7 +55,7 @@ vote :: Settings -> Int -> User -> Int -> IO ()
 vote (Settings token group_chatid manager votes) msg_id voter candidate_index = do
 	atomically $ modifyTVar' votes (consider candidate_index voter)
 	atomically (readTVar votes) >>= void . traverse
-		(flip (editMessageReplyMarkup token) manager . uncurry (update_keyboard group_chatid))
+		((editMessageReplyMarkup token) ? manager . uncurry (update_keyboard group_chatid))
 
 participate :: Settings -> Int -> User -> IO ()
 participate settings@(Settings token group_chatid manager votes) msgid user = do
@@ -69,11 +68,11 @@ participate settings@(Settings token group_chatid manager votes) msgid user = do
 		delete_message settings msgid
 
 candidates_table :: [(User, [User])] -> [[InlineKeyboardButton]]
-candidates_table scores = pure . button <$> zip [0..] scores where
+candidates_table scores = pure . map button . zip [0..] $ scores where
 
 	button :: (Int, (User, [User])) -> InlineKeyboardButton
 	button (idx, (User uid _ fn ln _ _, n)) = InlineKeyboardButton
-		(fn <> " " <> maybe "" id ln <> " : " <> (pack . show . length $ n))
+		(fn <> " " <> maybe "" identity ln <> " : " <> (pack . show . length $ n))
 		Nothing (Just . pack . show $ idx) Nothing Nothing Nothing Nothing
 
 update_keyboard :: ChatId -> Int -> [(User, [User])] -> EditMessageReplyMarkupRequest

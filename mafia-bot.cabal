@@ -22,7 +22,7 @@ library
     Mafia.Bot.Environment,
     Mafia.Bot.State
     Mafia.Bot.Voting
-  build-depends: base == 4.*, async, transformers, lens, text, warp, servant, servant-server,
+  build-depends: base == 4.*, pandora, async, transformers, lens, text, warp, servant, servant-server,
     telegram-api, http-client, http-client-tls, optparse-applicative, stm
   default-extensions: BangPatterns, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving, NoImplicitPrelude,
     OverloadedStrings, RecordWildCards, ApplicativeDo, MultiParamTypeClasses, FlexibleInstances, TypeApplications,
@@ -30,7 +30,7 @@ library
 
 executable bot
   main-is: Mafia/Bot.hs
-  build-depends: base == 4.*, async, transformers, lens, text, warp, servant, servant-server,
+  build-depends: base == 4.*, pandora, async, transformers, lens, text, warp, servant, servant-server,
     telegram-api, http-client, http-client-tls, optparse-applicative, stm
   default-extensions: BangPatterns, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving, NoImplicitPrelude,
     OverloadedStrings, RecordWildCards, ApplicativeDo, MultiParamTypeClasses, FlexibleInstances, TypeApplications,
