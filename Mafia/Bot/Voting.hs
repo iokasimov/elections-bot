@@ -1,4 +1,4 @@
-module Mafia.Voting (initiate, participate, vote) where
+module Mafia.Bot.Voting (initiate, participate, vote) where
 
 import "base" Data.Eq (Eq ((==)))
 import "base" Control.Applicative (pure, (*>))
@@ -26,8 +26,8 @@ import "telegram-api" Web.Telegram.API.Bot.Requests (ChatId (ChatId), ReplyKeybo
 import "telegram-api" Web.Telegram.API.Bot.Responses (Response (..))
 import "text" Data.Text (Text, pack)
 
-import Mafia.Configuration (Settings (Settings))
-import Mafia.State (Scores, start, consider, nomination)
+import Mafia.Bot.Environment (Settings (Settings))
+import Mafia.Bot.State (Scores, start, consider, nomination)
 
 -- Voting takes place in two stages for 5 minutes:
 -- 1) Primaries: someone should initiate it, when putting `/vote` command

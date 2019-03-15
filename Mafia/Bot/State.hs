@@ -1,4 +1,4 @@
-module Mafia.State (Votes, Scores, start, consider, nomination) where
+module Mafia.Bot.State (Votes, Scores, start, consider, nomination) where
 
 import "base" Data.Eq (Eq ((==)))
 import "base" Data.Foldable (find)

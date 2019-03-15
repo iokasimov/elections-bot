@@ -1,4 +1,4 @@
-module Mafia.Configuration (Settings (..), settings) where
+module Mafia.Bot.Environment (Settings (..), settings) where
 
 import "base" Data.Int (Int)
 import "base" Data.Function ((.), ($))
@@ -16,7 +16,7 @@ import "telegram-api" Web.Telegram.API.Bot.Data (User (..))
 import "telegram-api" Web.Telegram.API.Bot.Requests (ChatId (ChatId))
 import "text" Data.Text (pack)
 
-import Mafia.State (Votes)
+import Mafia.Bot.State (Votes)
 
 data Arguments = Arguments Token ChatId
 

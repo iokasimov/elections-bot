@@ -18,7 +18,10 @@ source-repository head
   location: https://github.com/iokasimov/mafia-bot.git
 
 library
-  exposed-modules: Mafia.Configuration, Mafia.State, Mafia.Voting
+  exposed-modules:
+    Mafia.Bot.Environment,
+    Mafia.Bot.State
+    Mafia.Bot.Voting
   build-depends: base == 4.*, async, transformers, lens, text, warp, servant, servant-server,
     telegram-api, http-client, http-client-tls, optparse-applicative, stm
   default-extensions: BangPatterns, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving, NoImplicitPrelude,

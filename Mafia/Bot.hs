@@ -17,8 +17,8 @@ import "warp" Network.Wai.Handler.Warp (run)
 
 import qualified Data.Text as T (take, unpack)
 
-import Mafia.Configuration (Settings (Settings), settings)
-import Mafia.Voting (initiate, participate, vote)
+import Mafia.Bot.Environment (Settings (Settings), settings)
+import Mafia.Bot.Voting (initiate, participate, vote)
 
 type API = "webhook" :> Capture "secret" Token :> ReqBody '[JSON] Update :> Post '[JSON] ()
 
