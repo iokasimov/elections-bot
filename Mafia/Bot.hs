@@ -18,13 +18,14 @@ import Mafia.Voting (initiate, participate, vote)
 type API = "webhook" :> Capture "secret" Token :> ReqBody '[JSON] Update :> Post '[JSON] ()
 
 server :: Settings -> Server API
-server settings@(Settings token _ _ _) secret update = if secret == token
-	then liftIO $ webhook settings update else throwError err403
+server settings@(Settings token group_chatid manager _) secret update =
+	if secret /= token then throwError err403 else do
+		liftIO $ webhook settings update
 
 webhook :: Settings -> Update -> IO ()
 webhook settings@(Settings _ (ChatId cid') _ _) u@(Update { message = Just (Message { message_id = msgid, text = Just "/participate" , chat = Chat { chat_id = cid }, from = Just user }) }) =
 	if cid' == cid then void . async $ participate settings msgid user else pure ()
-webhook settings@(Settings _ (ChatId cid') _ _) u@(Update { message = Just (Message { text = Just "/vote", chat = Chat { chat_id = cid } }) }) =
+webhook settings@(Settings _ (ChatId cid') _ _) u@(Update { message = Just (Message { text = Just "/initiate", chat = Chat { chat_id = cid } }) }) =
 	if cid' == cid then void . async $ initiate settings else pure ()
 webhook settings u@(Update { callback_query = Just (CallbackQuery { cq_from = user, cq_data = Just candidate, cq_message = Just (Message { message_id = mid }) }) }) =
 	maybe (pure ()) (void . async . vote settings mid user) $ readMaybe (T.unpack candidate)
