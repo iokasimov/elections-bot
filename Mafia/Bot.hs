@@ -1,8 +1,13 @@
 module Main where
 
 import "async" Control.Concurrent.Async (async)
-import "base" Control.Monad (void)
+import "base" Control.Applicative (pure)
+import "base" Control.Monad (void, (>>=))
 import "base" Control.Monad.IO.Class (liftIO)
+import "base" Data.Eq (Eq ((==)))
+import "base" Data.Function ((.), ($))
+import "base" Data.Maybe (Maybe (Just), maybe)
+import "base" System.IO (IO, print)
 import "base" Text.Read (readMaybe)
 import "servant-server" Servant (Capture, ReqBody, Proxy (Proxy), Server, JSON, Get, Post, type (:>), serve, err403, throwError)
 import "telegram-api" Web.Telegram.API.Bot.API (Token (Token))
