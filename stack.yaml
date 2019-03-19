@@ -41,6 +41,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - {git: "https://github.com/Javran/haskell-telegram-api", commit: "d5a80a0"}
+- {git: "https://github.com/iokasimov/telega", commit: "0ede084"}
 
 # Override default flag values for local packages and extra-deps
 flags: {}
