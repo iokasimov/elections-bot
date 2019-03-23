@@ -1,6 +1,6 @@
 module Mafia.Configuration (Settings (..), settings) where
 
-import "base" Data.Int (Int)
+import "base" Data.Int (Int64)
 import "base" Data.Function ((.), ($))
 import "base" Data.Functor ((<$>))
 import "base" Control.Applicative ((<*>))
@@ -11,21 +11,19 @@ import "stm" Control.Concurrent.STM (TVar, newTVarIO)
 import "optparse-applicative" Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
 import "http-client" Network.HTTP.Client (Manager, newManager)
 import "http-client-tls" Network.HTTP.Client.TLS (tlsManagerSettings)
-import "telegram-api" Web.Telegram.API.Bot.API (Token (Token))
-import "telegram-api" Web.Telegram.API.Bot.Data (User (..))
-import "telegram-api" Web.Telegram.API.Bot.Requests (ChatId (ChatId))
+import "telega" Network.Telegram.API.Bot (Telegram, Token (Token))
 import "text" Data.Text (pack)
 
 import Mafia.State (Votes)
 
-data Arguments = Arguments Token ChatId
+data Arguments = Arguments Token Int64
 
 options :: Parser Arguments
 options = Arguments
 	<$> (Token . pack <$> argument str (metavar "TOKEN"))
-	<*> (ChatId . negate <$> argument auto (metavar "CHATID"))
+	<*> (negate <$> argument auto (metavar "CHAT_ID"))
 
-data Settings = Settings Token ChatId Manager (TVar Votes)
+data Settings = Settings Token Int64 Manager (TVar Votes)
 
 settings :: IO Settings
 settings = do

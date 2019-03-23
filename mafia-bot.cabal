@@ -18,9 +18,9 @@ source-repository head
   location: https://github.com/iokasimov/mafia-bot.git
 
 library
-  exposed-modules: Mafia.Configuration, Mafia.State, Mafia.Voting
+  exposed-modules: Mafia.Configuration
   build-depends: base == 4.*, async, transformers, lens, text, warp, servant, servant-server,
-    telegram-api, http-client, http-client-tls, optparse-applicative, stm, req, telega
+    telegram-api, http-client, http-client-tls, optparse-applicative, stm, telega
   default-extensions: BangPatterns, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving, NoImplicitPrelude,
     OverloadedStrings, RecordWildCards, ApplicativeDo, MultiParamTypeClasses, FlexibleInstances, TypeApplications,
     ScopedTypeVariables, TypeOperators, DataKinds, GADTs, FlexibleContexts, ViewPatterns, LambdaCase, PackageImports
@@ -28,7 +28,7 @@ library
 executable bot
   main-is: Mafia/Bot.hs
   build-depends: base == 4.*, async, transformers, lens, text, warp, servant, servant-server,
-    telegram-api, http-client, http-client-tls, optparse-applicative, stm, req, telega
+    telegram-api, http-client, http-client-tls, optparse-applicative, stm, telega
   default-extensions: BangPatterns, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving, NoImplicitPrelude,
     OverloadedStrings, RecordWildCards, ApplicativeDo, MultiParamTypeClasses, FlexibleInstances, TypeApplications,
     ScopedTypeVariables, TypeOperators, DataKinds, GADTs, FlexibleContexts, ViewPatterns, LambdaCase, PackageImports
