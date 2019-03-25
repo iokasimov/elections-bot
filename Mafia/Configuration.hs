@@ -9,10 +9,9 @@ import "base" System.IO (IO)
 import "base" Prelude (negate)
 import "stm" Control.Concurrent.STM (TVar, newTVarIO)
 import "optparse-applicative" Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
-import "http-client" Network.HTTP.Client (Manager, newManager)
-import "http-client-tls" Network.HTTP.Client.TLS (tlsManagerSettings)
 import "telega" Network.Telegram.API.Bot (Telegram, Token (Token))
 import "text" Data.Text (pack)
+import "wreq" Network.Wreq.Session (Session, newAPISession)
 
 import Mafia.State (Votes)
 
@@ -23,9 +22,9 @@ options = Arguments
 	<$> (Token . pack <$> argument str (metavar "TOKEN"))
 	<*> (negate <$> argument auto (metavar "CHAT_ID"))
 
-data Settings = Settings Token Int64 Manager (TVar Votes)
+data Settings = Settings Token Int64 Session (TVar Votes)
 
 settings :: IO Settings
 settings = do
 	Arguments token chaid <- execParser $ info options fullDesc
-	Settings token chaid <$> newManager tlsManagerSettings <*> newTVarIO Nothing
+	Settings token chaid <$> newAPISession <*> newTVarIO Nothing

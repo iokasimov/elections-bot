@@ -11,8 +11,10 @@ import "base" System.IO (IO, print)
 import "base" Text.Read (readMaybe)
 import "servant-server" Servant (Capture, ReqBody, Proxy (Proxy)
 	, Server, JSON, Get, Post, type (:>), serve, err403, throwError)
-import "telega" Network.Telegram.API.Bot.Update (Update (..))
-import "telega" Network.Telegram.API.Bot (Telegram, Token (Token))
+import "telega" Network.Telegram.API.Bot.Capacity.Postable (Postable (post))
+import "telega" Network.Telegram.API.Bot.Object.Message (Payload (Msg))
+import "telega" Network.Telegram.API.Bot.Object.Update (Update (Incoming))
+import "telega" Network.Telegram.API.Bot (Telegram, Token (Token), telegram)
 import "warp" Network.Wai.Handler.Warp (run)
 
 import qualified Data.Text as T (take, unpack)
@@ -29,4 +31,6 @@ server settings@(Settings token group_chatid manager _) secret update =
 webhook :: Settings -> Update -> IO ()
 webhook _ (Incoming _ u) = print u
 
-main = settings >>= run 8080 . serve (Proxy :: Proxy API) . server
+main = do
+	Settings token chatid session _ <- settings
+	telegram session token chatid $ post (Msg chatid "hello there")
