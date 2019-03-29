@@ -6,22 +6,28 @@ import "base" Control.Concurrent (threadDelay)
 import "base" Control.Monad (void, (>>=))
 import "base" Control.Monad.IO.Class (liftIO)
 import "base" Data.Eq (Eq ((==), (/=)))
-import "base" Data.Function ((.), ($))
-import "base" Data.Functor ((<$>))
+import "base" Data.Foldable (find, length)
+import "base" Data.Function (const, id, (.), ($))
+import "base" Data.Functor (fmap, (<$>))
 import "base" Data.Int (Int, Int64)
+import "base" Data.List (zip)
 import "base" Data.Maybe (Maybe (Just, Nothing), maybe)
+import "base" Data.Semigroup ((<>))
+import "base" Data.Tuple (fst)
 import "base" Prelude (negate)
 import "base" System.IO (IO, print)
 import "base" Text.Read (readMaybe)
+import "base" Text.Show (show)
 import "optparse-applicative" Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
 import "servant-server" Servant (Capture, ReqBody, Proxy (Proxy), Server, JSON
 	, Get, Post, FromHttpApiData, ToHttpApiData, type (:>), serve, err403, throwError)
-import "stm" Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import "stm" Control.Concurrent.STM (TVar, atomically, newTVarIO, modifyTVar', readTVar, writeTVar)
 import "telega" Network.Telegram.API.Bot.Capacity.Editable (Editable (edit), Substitution)
 import "telega" Network.Telegram.API.Bot.Capacity.Postable (Postable (post), Initial)
 import "telega" Network.Telegram.API.Bot.Capacity.Purgeable (Purgeable (purge), Marking)
 import "telega" Network.Telegram.API.Bot.Object.Button (Button (Button), Pressed (Open, Callback))
-import "telega" Network.Telegram.API.Bot.Object.From (From)
+import "telega" Network.Telegram.API.Bot.Object.Chat (Chat (Group))
+import "telega" Network.Telegram.API.Bot.Object.From (From (User))
 import "telega" Network.Telegram.API.Bot.Object.Callback (Callback (Datatext))
 import "telega" Network.Telegram.API.Bot.Object.Keyboard (Keyboard (Inline), Substitution)
 import "telega" Network.Telegram.API.Bot.Object.Message (Message (Textual, Command), Initial, Marking)
@@ -38,8 +44,10 @@ type Scores = [(From, [From])]
 
 type Votes = Maybe (Int, Scores)
 
-start_voting :: T.Text
-start_voting = "Голосование началось - в течении следующих 5 минут вы можете указать игроков, с которыми вы хотели бы поиграть."
+-- Application for participation
+nomination :: From -> Votes -> Votes
+nomination user = fmap . fmap $ \us ->
+	maybe ((user, []) : us) (const us) . find ((==) user . fst) $ us
 
 initiate :: Telegram (Int64, TVar Votes) ()
 initiate = ask' >>= \(chat_id, votes) ->
@@ -48,7 +56,23 @@ initiate = ask' >>= \(chat_id, votes) ->
 		Nothing -> do
 			msg <- post @Message (chat_id, start_voting, Just $ Inline [])
 			let Textual keyboard_msg_id _ _ _ = msg
-			lift . lift . atomically . writeTVar votes . Just $ (keyboard_msg_id, [])
+			lift . lift . atomically . writeTVar votes . Just $ (keyboard_msg_id, []) where
+
+			start_voting :: T.Text
+			start_voting = "Голосование началось - в течении следующих 5 минут "
+				<> "вы можете указать игроков, с которыми вы хотели бы поиграть."
+
+participate :: From -> Telegram (Int64, TVar Votes) ()
+participate from = ask' >>= \(chat_id, votes) ->
+	(lift . lift . atomically $ modifyTVar' votes (nomination from) *> readTVar votes) >>= \case
+		Nothing -> void $ post @Message (chat_id, "Голосование не иницировано...", Nothing)
+		Just (keyboard_msg_id, scores) -> void $ edit @Keyboard
+			(chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores) where
+
+			button :: (Int, (From, [From])) -> Button
+			button (idx, (User uid _ fn ln _, n)) = Button
+				(fn <> " " <> maybe "" id ln <> " : " <> (T.pack . show . length $ n))
+				(Callback . T.pack . show $ idx)
 
 type API = "webhook" :> Capture "secret" Token :> ReqBody '[JSON] Update :> Post '[JSON] ()
 
@@ -62,7 +86,9 @@ server session token chat_id votes secret update = if secret /= token then throw
 webhook :: Update -> Telegram (Int64, TVar Votes) ()
 webhook (Query _ u) = lift . lift $ print u
 webhook (Incoming _ (Textual _ _ _ txt)) = lift . lift $ T.putStrLn txt
-webhook (Incoming _ (Command _ _ _ "vote")) = initiate
+webhook (Incoming _ (Command msg_id (Group chat_id _) _ "vote")) = initiate *> purge @Message (chat_id, msg_id)
+webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) = participate from *> purge @Message (chat_id, msg_id)
+webhook _ = lift . lift $ print "Undefined update"
 
 test_inline_keyboard :: Keyboard
 test_inline_keyboard = Inline . pure $ Button "click me" (Callback "!") :
