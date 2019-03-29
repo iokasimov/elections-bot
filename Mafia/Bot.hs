@@ -14,8 +14,9 @@ import "base" Prelude (negate)
 import "base" System.IO (IO, print)
 import "base" Text.Read (readMaybe)
 import "optparse-applicative" Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
-import "servant-server" Servant (Capture, ReqBody, Proxy (Proxy), Server, JSON, PlainText, Get, Post
-	, FromHttpApiData, ToHttpApiData, type (:>), serve, err403, throwError)
+import "servant-server" Servant (Capture, ReqBody, Proxy (Proxy), Server, JSON
+	, Get, Post, FromHttpApiData, ToHttpApiData, type (:>), serve, err403, throwError)
+import "stm" Control.Concurrent.STM (TVar, newTVarIO)
 import "telega" Network.Telegram.API.Bot.Capacity.Editable (Editable (edit), Substitution)
 import "telega" Network.Telegram.API.Bot.Capacity.Postable (Postable (post), Initial)
 import "telega" Network.Telegram.API.Bot.Capacity.Purgeable (Purgeable (purge), Marking)
@@ -28,6 +29,7 @@ import "telega" Network.Telegram.API.Bot.Object.Update (Update (Incoming, Query)
 import "telega" Network.Telegram.API.Bot (Telegram, Token (Token), telegram)
 import "transformers" Control.Monad.Trans.Class (lift)
 import "warp" Network.Wai.Handler.Warp (run)
+import "wreq" Network.Wreq.Session (Session, newAPISession)
 
 import qualified "text" Data.Text as T (pack)
 import qualified "text" Data.Text.IO as T (putStrLn)
@@ -37,15 +39,16 @@ type API = "webhook" :> Capture "secret" Token :> ReqBody '[JSON] Update :> Post
 deriving instance ToHttpApiData Token
 deriving instance FromHttpApiData Token
 
-server :: Token -> Server API
-server token secret update =
+server :: Session -> Token -> Int64 -> TVar () -> Server API
+server session token chat_id votes secret update =
 	if secret /= token then throwError err403 else do
-		liftIO $ webhook update
+		liftIO . void . telegram session token (chat_id, votes) $ webhook update
 
-webhook :: Update -> IO ()
-webhook (Query _ u) = print u
-webhook (Incoming _ (Textual _ _ _ txt)) = T.putStrLn txt
-webhook (Incoming _ (Command _ _ _ cmd)) = T.putStrLn cmd
+-- webhook :: Update -> IO ()
+webhook :: Update -> Telegram (Int64, TVar ()) ()
+webhook (Query _ u) = lift . lift $ print u
+webhook (Incoming _ (Textual _ _ _ txt)) = lift . lift $ T.putStrLn txt
+webhook (Incoming _ (Command _ _ _ cmd)) = lift . lift $ T.putStrLn cmd
 
 test_inline_keyboard :: Keyboard
 test_inline_keyboard = Inline . pure $ Button "click me" (Callback "!") :
@@ -59,5 +62,6 @@ options = Arguments
 	<*> (negate <$> argument auto (metavar "CHAT_ID"))
 
 main = do
-	Arguments token _ <- execParser $ info options fullDesc
-	run 8080 . serve (Proxy :: Proxy API) . server $ token
+	Arguments token chat_id <- execParser $ info options fullDesc
+	(session, votes) <- (,) <$> newAPISession <*> newTVarIO ()
+	run 8080 . serve (Proxy :: Proxy API) $ server session token chat_id votes
