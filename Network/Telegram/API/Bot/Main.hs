@@ -10,9 +10,7 @@ import "base" Data.Foldable (find, length)
 import "base" Data.Function (const, id, (.), ($), (&))
 import "base" Data.Functor (fmap, (<$>))
 import "base" Data.Int (Int, Int64)
-import "base" Data.List (delete, zip)
 import "base" Data.Maybe (Maybe (Just, Nothing), maybe)
-import "base" Data.Semigroup ((<>))
 import "base" Data.Tuple (fst)
 import "base" Prelude (negate)
 import "base" System.IO (IO, print)
@@ -21,7 +19,7 @@ import "base" Text.Show (show)
 import "optparse-applicative" Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
 import "servant-server" Servant (Capture, ReqBody, Proxy (Proxy), Server, JSON
 	, Get, Post, FromHttpApiData, ToHttpApiData, type (:>), serve, err403, throwError)
-import "stm" Control.Concurrent.STM (TVar, atomically, newTVarIO, modifyTVar', readTVar, writeTVar)
+import "stm" Control.Concurrent.STM (TVar, newTVarIO)
 import "telega" Network.Telegram.API.Bot.Capacity.Editable (Editable (edit), Substitution)
 import "telega" Network.Telegram.API.Bot.Capacity.Postable (Postable (post), Initial)
 import "telega" Network.Telegram.API.Bot.Capacity.Purgeable (Purgeable (purge), Marking)
@@ -41,40 +39,7 @@ import qualified "text" Data.Text as T (Text, pack, unpack)
 import qualified "text" Data.Text.IO as T (putStrLn)
 
 import Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, consider)
-
-initiate :: Telegram (Int64, TVar Votes) ()
-initiate = ask' >>= \(chat_id, votes) ->
-	(lift . lift . atomically $ readTVar votes) >>= \case
-		Just _ -> void $ post @Message (chat_id, "Идёт голосование...", Nothing)
-		Nothing -> do
-			msg <- post @Message (chat_id, start_voting, Just $ Inline [])
-			let Textual keyboard_msg_id _ _ _ = msg
-			lift . lift . atomically . writeTVar votes . Just $ (keyboard_msg_id, []) where
-
-			start_voting :: T.Text
-			start_voting = "Голосование началось - в течении следующих 5 минут "
-				<> "вы можете указать игроков, с которыми вы хотели бы поиграть."
-
-participate :: From -> Telegram (Int64, TVar Votes) ()
-participate from = ask' >>= \(chat_id, votes) ->
-	(lift . lift . atomically $ modifyTVar' votes (nomination from) *> readTVar votes) >>= \case
-		Nothing -> void $ post @Message (chat_id, "Голосование не иницировано...", Nothing)
-		Just (keyboard_msg_id, scores) -> void $ edit @Keyboard
-			(chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores)
-
-button :: (Int, (From, [From])) -> Button
-button (idx, (User uid _ fn ln _, n)) = Button
-	(fn <> " " <> maybe "" id ln <> " : " <> (T.pack . show . length $ n))
-	(Callback . T.pack . show $ idx)
-
-vote :: From -> T.Text -> Telegram (Int64, TVar Votes) ()
-vote _ (readMaybe @Int . T.unpack -> Nothing) = pure ()
-vote from (readMaybe @Int . T.unpack -> Just cnd_idx) = ask' >>= \(chat_id, votes) -> do
-	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx from) *> readTVar votes
-	(lift . lift . atomically $ considering) >>= \case
-		Nothing -> lift . lift $ print "Very strange situation"
-		Just (keyboard_msg_id, scores) -> void $ edit @Keyboard
-			(chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores)
+import Network.Telegram.API.Bot.Elections.Process (initiate, participate, vote)
 
 type API = "webhook" :> Capture "secret" Token :> ReqBody '[JSON] Update :> Post '[JSON] ()
 
