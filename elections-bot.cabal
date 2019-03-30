@@ -1,0 +1,40 @@
+name:                elections-bot
+version:             0.1.0
+synopsis:            ...
+description:         ...
+homepage:            https://github.com/iokasimov/elections-bot
+license:             MIT
+license-file:        LICENSE
+extra-source-files:  CHANGELOG.md
+author:              Murat Kasimov
+maintainer:          Murat Kasimov <iokasimov.m@gmail.com>
+copyright:           Copyright (c) 2019 Murat Kasimov
+category:            Data, Control
+build-type:          Simple
+cabal-version:       >= 1.10
+
+source-repository head
+  type: git
+  location: https://github.com/iokasimov/mafia-bot.git
+
+library
+  exposed-modules:
+    Network.Telegram.API.Bot.Elections.Configuration
+    Network.Telegram.API.Bot.Elections.Process
+    Network.Telegram.API.Bot.Elections.Server
+    Network.Telegram.API.Bot.Elections.State
+  build-depends: base == 4.*, async, transformers, lens, text, warp,
+    servant, servant-server, optparse-applicative, stm, wreq, telega
+  default-extensions:  GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
+    OverloadedStrings, StandaloneDeriving, TypeApplications, ViewPatterns,
+    ScopedTypeVariables, TypeOperators, DataKinds, PackageImports
+  ghc-options: -Wall -fno-warn-tabs
+
+executable bot
+  main-is: Network/Telegram/API/Bot/Main.hs
+  build-depends: elections-bot, base == 4.*, async, transformers, lens, text,warp, servant,
+    servant-server, optparse-applicative, stm, wreq, telega
+  default-extensions:  GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
+    OverloadedStrings, StandaloneDeriving, TypeApplications, ViewPatterns,
+    ScopedTypeVariables, TypeOperators, DataKinds, PackageImports
+  ghc-options: -Wall -fno-warn-tabs
