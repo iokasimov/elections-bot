@@ -18,7 +18,6 @@ import "base" Prelude (negate)
 import "base" System.IO (IO, print)
 import "base" Text.Read (readMaybe)
 import "base" Text.Show (show)
-import "lens" Control.Lens (element, _2, (%~))
 import "optparse-applicative" Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
 import "servant-server" Servant (Capture, ReqBody, Proxy (Proxy), Server, JSON
 	, Get, Post, FromHttpApiData, ToHttpApiData, type (:>), serve, err403, throwError)
@@ -41,19 +40,7 @@ import "wreq" Network.Wreq.Session (Session, newAPISession)
 import qualified "text" Data.Text as T (Text, pack, unpack)
 import qualified "text" Data.Text.IO as T (putStrLn)
 
-type Scores = [(From, [From])]
-
-type Votes = Maybe (Int, Scores)
-
--- Application for participation
-nomination :: From -> Votes -> Votes
-nomination user = fmap . fmap $ \us ->
-	maybe ((user, []) : us) (const us) . find ((==) user . fst) $ us
-
--- If you already voted for this candidate, your vote will be removed
-consider :: Int -> From -> Scores -> Scores
-consider candidate_index voter votes = votes & element candidate_index . _2 %~
-	(\scores -> maybe (voter : scores) (const $ delete voter scores) . find (== voter) $ scores)
+import Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, consider)
 
 initiate :: Telegram (Int64, TVar Votes) ()
 initiate = ask' >>= \(chat_id, votes) ->
@@ -80,8 +67,9 @@ button (idx, (User uid _ fn ln _, n)) = Button
 	(fn <> " " <> maybe "" id ln <> " : " <> (T.pack . show . length $ n))
 	(Callback . T.pack . show $ idx)
 
-vote :: From -> Int -> Telegram (Int64, TVar Votes) ()
-vote from cnd_idx = ask' >>= \(chat_id, votes) -> do
+vote :: From -> T.Text -> Telegram (Int64, TVar Votes) ()
+vote _ (readMaybe @Int . T.unpack -> Nothing) = pure ()
+vote from (readMaybe @Int . T.unpack -> Just cnd_idx) = ask' >>= \(chat_id, votes) -> do
 	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx from) *> readTVar votes
 	(lift . lift . atomically $ considering) >>= \case
 		Nothing -> lift . lift $ print "Very strange situation"
@@ -99,12 +87,9 @@ server session token chat_id votes secret update = if secret /= token then throw
 
 webhook :: Update -> Telegram (Int64, TVar Votes) ()
 webhook (Incoming _ (Textual _ _ _ txt)) = lift . lift $ T.putStrLn txt
-webhook (Query _ (Datatext from msg txt)) =
-	maybe (pure ()) (void . vote from) $ readMaybe (T.unpack txt)
-webhook (Incoming _ (Command msg_id (Group chat_id _) _ "initiate")) =
-	initiate *> purge @Message (chat_id, msg_id)
-webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) =
-	participate from *> purge @Message (chat_id, msg_id)
+webhook (Query _ (Datatext from msg txt)) = vote from txt
+webhook (Incoming _ (Command msg_id (Group chat_id _) _ "initiate")) = initiate *> purge @Message (chat_id, msg_id)
+webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) = participate from *> purge @Message (chat_id, msg_id)
 webhook _ = lift . lift $ print "Undefined update"
 
 data Arguments = Arguments Token Int64
