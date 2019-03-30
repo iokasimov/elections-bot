@@ -107,10 +107,6 @@ webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) =
 	participate from *> purge @Message (chat_id, msg_id)
 webhook _ = lift . lift $ print "Undefined update"
 
-test_inline_keyboard :: Keyboard
-test_inline_keyboard = Inline . pure $ Button "click me" (Callback "!") :
-	Button "do not click me" (Open "http://www.nooooooooooooooo.com") : []
-
 data Arguments = Arguments Token Int64
 
 options :: Parser Arguments
