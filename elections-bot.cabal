@@ -1,8 +1,8 @@
-name:                mafia-bot
+name:                elections-bot
 version:             0.1.0
 synopsis:            ...
 description:         ...
-homepage:            https://github.com/iokasimov/mafia-bot
+homepage:            https://github.com/iokasimov/elections-bot
 license:             MIT
 license-file:        LICENSE
 extra-source-files:  CHANGELOG.md
@@ -18,7 +18,7 @@ source-repository head
   location: https://github.com/iokasimov/mafia-bot.git
 
 library
-  exposed-modules:
+  exposed-modules: Network.Telegram.API.Bot.Elections
   build-depends: base == 4.*, async, transformers, lens, text, warp, servant, servant-server,
     telegram-api, http-client, http-client-tls, optparse-applicative, stm, wreq, telega
   default-extensions:  GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
@@ -26,7 +26,7 @@ library
     ScopedTypeVariables, TypeOperators, DataKinds, PackageImports
 
 executable bot
-  main-is: Mafia/Bot.hs
+  main-is: Network/Telegram/API/Bot/Main.hs
   build-depends: base == 4.*, async, transformers, lens, text, warp, servant, servant-server,
     telegram-api, http-client, http-client-tls, optparse-applicative, stm, wreq, telega
   default-extensions:  GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
