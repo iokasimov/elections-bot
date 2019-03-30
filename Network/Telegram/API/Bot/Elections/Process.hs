@@ -41,11 +41,6 @@ participate from = ask' >>= \(chat_id, votes) ->
 		Just (keyboard_msg_id, scores) -> void $ edit @Keyboard
 			(chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores)
 
-button :: (Int, (From, [From])) -> Button
-button (idx, (User uid _ fn ln _, n)) = Button
-	(fn <> " " <> maybe "" id ln <> " : " <> (pack . show . length $ n))
-	(Callback . pack . show $ idx)
-
 vote :: From -> Text -> Telegram (Int64, TVar Votes) ()
 vote _ (readMaybe @Int . unpack -> Nothing) = pure ()
 vote from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(chat_id, votes) -> do
@@ -54,3 +49,8 @@ vote from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(chat_id, votes)
 		Nothing -> lift . lift $ print "Very strange situation"
 		Just (keyboard_msg_id, scores) -> void $ edit @Keyboard
 			(chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores)
+
+button :: (Int, (From, [From])) -> Button
+button (idx, (User uid _ fn ln _, n)) = Button
+	(fn <> " " <> maybe "" id ln <> " : " <> (pack . show . length $ n))
+	(Callback . pack . show $ idx)

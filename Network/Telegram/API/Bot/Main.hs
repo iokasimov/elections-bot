@@ -17,9 +17,8 @@ import "base" System.IO (IO, print)
 import "base" Text.Read (readMaybe)
 import "base" Text.Show (show)
 import "optparse-applicative" Options.Applicative (Parser, execParser, argument, auto, info, fullDesc, metavar, str)
-import "servant-server" Servant (Capture, ReqBody, Proxy (Proxy), Server, JSON
-	, Get, Post, FromHttpApiData, ToHttpApiData, type (:>), serve, err403, throwError)
-import "stm" Control.Concurrent.STM (TVar, newTVarIO)
+import "servant-server" Servant (Proxy (Proxy), serve)
+import "stm" Control.Concurrent.STM (newTVarIO)
 import "telega" Network.Telegram.API.Bot.Capacity.Editable (Editable (edit), Substitution)
 import "telega" Network.Telegram.API.Bot.Capacity.Postable (Postable (post), Initial)
 import "telega" Network.Telegram.API.Bot.Capacity.Purgeable (Purgeable (purge), Marking)
@@ -38,24 +37,7 @@ import "wreq" Network.Wreq.Session (Session, newAPISession)
 import qualified "text" Data.Text as T (Text, pack, unpack)
 import qualified "text" Data.Text.IO as T (putStrLn)
 
-import Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, consider)
-import Network.Telegram.API.Bot.Elections.Process (initiate, participate, vote)
-
-type API = "webhook" :> Capture "secret" Token :> ReqBody '[JSON] Update :> Post '[JSON] ()
-
-deriving instance ToHttpApiData Token
-deriving instance FromHttpApiData Token
-
-server :: Session -> Token -> Int64 -> TVar Votes -> Server API
-server session token chat_id votes secret update = if secret /= token then throwError err403
-	else liftIO . void . telegram session token (chat_id, votes) $ webhook update
-
-webhook :: Update -> Telegram (Int64, TVar Votes) ()
-webhook (Incoming _ (Textual _ _ _ txt)) = lift . lift $ T.putStrLn txt
-webhook (Query _ (Datatext from msg txt)) = vote from txt
-webhook (Incoming _ (Command msg_id (Group chat_id _) _ "initiate")) = initiate *> purge @Message (chat_id, msg_id)
-webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) = participate from *> purge @Message (chat_id, msg_id)
-webhook _ = lift . lift $ print "Undefined update"
+import Network.Telegram.API.Bot.Elections.Server (API, server)
 
 data Arguments = Arguments Token Int64
 
