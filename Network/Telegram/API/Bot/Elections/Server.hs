@@ -28,6 +28,6 @@ server session token chat_id votes secret update = if secret /= token then throw
 
 webhook :: Update -> Telegram (Int64, TVar Votes) ()
 webhook (Query _ (Datatext from _ txt)) = vote from txt
-webhook (Incoming _ (Command msg_id (Group chat_id _) _ "initiate")) = initiate *> purge @Message (chat_id, msg_id) *> conduct
+webhook (Incoming _ (Command msg_id (Group chat_id _) from "initiate")) = initiate from *> purge @Message (chat_id, msg_id) *> conduct
 webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) = participate from *> purge @Message (chat_id, msg_id)
 webhook _ = pure ()

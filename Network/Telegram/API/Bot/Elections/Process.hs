@@ -22,14 +22,14 @@ import "transformers" Control.Monad.Trans.Class (lift)
 
 import Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, consider)
 
-initiate :: Telegram (Int64, TVar Votes) ()
-initiate = ask' >>= \(chat_id, votes) ->
+initiate :: From -> Telegram (Int64, TVar Votes) ()
+initiate from = ask' >>= \(chat_id, votes) ->
 	(lift . lift . atomically $ readTVar votes) >>= \case
 		Just _ -> void $ post @Message (chat_id, "Идёт голосование...", Nothing)
 		Nothing -> do
-			msg <- post @Message (chat_id, start_voting, Just $ Inline [])
+			msg <- post @Message (chat_id, start_voting, Just $ Inline . pure . pure $ button (0, (from, [])))
 			let Textual keyboard_msg_id _ _ _ = msg
-			lift . lift . atomically . writeTVar votes . Just $ (keyboard_msg_id, []) where
+			lift . lift . atomically . writeTVar votes . Just $ (keyboard_msg_id, [(from, [])]) where
 
 conduct :: Telegram (Int64, TVar Votes) ()
 conduct = ask' >>= \(chat_id, votes) -> do
