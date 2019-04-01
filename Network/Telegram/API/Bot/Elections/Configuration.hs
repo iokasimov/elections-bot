@@ -1,4 +1,5 @@
-module Network.Telegram.API.Bot.Elections.Configuration (Settings (..), settings) where
+module Network.Telegram.API.Bot.Elections.Configuration
+	(Environment, Settings (..), settings) where
 
 import "base" Data.Int (Int, Int64)
 import "base" Data.Function ((.), ($))
@@ -15,6 +16,8 @@ import "text" Data.Text (pack)
 import "wreq" Network.Wreq.Session (Session, newAPISession)
 
 import Network.Telegram.API.Bot.Elections.State (Votes)
+
+type Environment = (Int64, Int, TVar Votes)
 
 data Arguments = Arguments Token Int64 Int
 

@@ -4,12 +4,13 @@ import "base" Control.Applicative (pure, (<*>), (*>))
 import "base" Control.Concurrent (threadDelay)
 import "base" Control.Monad ((>>=))
 import "base" Data.Foldable (foldr, length)
-import "base" Data.Function (flip, id, (.), ($), (&))
+import "base" Data.Function (const, flip, id, (.), ($), (&))
 import "base" Data.Functor (fmap, void, (<$>))
 import "base" Data.Int (Int, Int64)
 import "base" Data.List (zip)
 import "base" Data.Maybe (Maybe (Just, Nothing), maybe)
 import "base" Data.Semigroup ((<>))
+import "base" Prelude ((*))
 import "base" System.IO (print)
 import "base" Text.Read (readMaybe)
 import "base" Text.Show (show)
@@ -23,43 +24,53 @@ import "telega" Network.Telegram.API.Bot.Capacity (Editable (edit), Postable (po
 import "telega" Network.Telegram.API.Bot.Property (Identifiable (identificator))
 import "transformers" Control.Monad.Trans.Class (lift)
 
+import Network.Telegram.API.Bot.Elections.Configuration (Environment)
 import Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, consider)
 
-initiate :: From -> Telegram (Int64, TVar Votes) ()
-initiate from = ask' >>= \(chat_id, votes) -> (atomically' $ readTVar votes) >>= \case
-	Just _ -> void $ post @Message (chat_id, "Идёт голосование...", Nothing)
-	Nothing -> do
-		msg <- post @Message (chat_id, start_voting, Just $ Inline . pure . pure $ button (0, (from, [])))
+initiate :: From -> Telegram Environment ()
+initiate from = ask' >>= \(chat_id, _, votes) -> (atomically' $ readTVar votes) >>=
+	maybe (show_candidates chat_id votes) (const $ already_initiated chat_id) where
+
+	already_initiated :: Int64 -> Telegram Environment ()
+	already_initiated chat_id = void $ post @Message
+		(chat_id, "Идёт голосование...", Nothing)
+
+	show_candidates :: Int64 -> TVar Votes -> Telegram Environment ()
+	show_candidates chat_id votes = do
+		msg <- post @Message (chat_id, start_voting, Just $
+			Inline . pure . pure $ button (0, (from, [])))
 		let Textual keyboard_msg_id _ _ _ = msg
-		atomically' . writeTVar votes . Just $ (keyboard_msg_id, [(from, [])]) where
+		atomically' . writeTVar votes . Just $
+			(keyboard_msg_id, [(from, [])])
 
-conduct :: Telegram (Int64, TVar Votes) ()
-conduct = ask' >>= \(chat_id, votes) -> do
-	lift . lift $ threadDelay 600000000 -- wait for 10 minutes
-	atomically' (readTVar votes) >>= \case
-		Nothing -> lift . lift $ print "Very strange situation"
-		Just (keyboard_msg_id, scores) -> do
-			void $ purge @Message (chat_id, keyboard_msg_id)
-			void $ post @Message (chat_id, end_voting scores, Nothing)
-			atomically' . writeTVar votes $ Nothing
+conduct :: Telegram Environment ()
+conduct = ask' >>= \(chat_id, election_duration, votes) -> do
+	lift . lift . threadDelay $ election_duration * 60000000
+	atomically' (readTVar votes) >>= maybe (pure ()) (finish_election chat_id votes) where
 
-participate :: From -> Telegram (Int64, TVar Votes) ()
-participate from = ask' >>= \(chat_id, votes) ->
+	finish_election :: Int64 -> TVar Votes -> (Int, Scores) -> Telegram Environment ()
+	finish_election chat_id votes (keyboard_msg_id, scores) = do
+		void $ purge @Message (chat_id, keyboard_msg_id)
+		void $ post @Message (chat_id, end_voting scores, Nothing)
+		atomically' . writeTVar votes $ Nothing
+
+participate :: From -> Telegram Environment ()
+participate from = ask' >>= \(chat_id, _, votes) ->
 	(atomically' $ modifyTVar' votes (nomination from) *> readTVar votes) >>= \case
 		Nothing -> void $ post @Message (chat_id, "Голосование не иницировано...", Nothing)
 		Just (keyboard_msg_id, scores) -> void $ edit @Keyboard
 			(chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores)
 
-vote :: From -> Text -> Telegram (Int64, TVar Votes) ()
+vote :: From -> Text -> Telegram Environment ()
 vote _ (readMaybe @Int . unpack -> Nothing) = pure ()
-vote from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(chat_id, votes) -> do
+vote from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(chat_id, _, votes) -> do
 	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx from) *> readTVar votes
 	atomically' considering >>= \case
 		Nothing -> lift . lift $ print "Very strange situation"
 		Just (keyboard_msg_id, scores) -> void $ edit @Keyboard
 			(chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores)
 
-atomically' :: STM a -> Telegram (Int64, TVar Votes) a
+atomically' :: STM a -> Telegram Environment a
 atomically' = lift . lift . atomically
 
 button :: (Int, (From, [From])) -> Button
