@@ -35,7 +35,7 @@ initiate from = ask' >>= \(chat_id, votes) -> (atomically' $ readTVar votes) >>=
 
 conduct :: Telegram (Int64, TVar Votes) ()
 conduct = ask' >>= \(chat_id, votes) -> do
-	lift . lift $ threadDelay 60000000 -- wait for 10 minutes
+	lift . lift $ threadDelay 600000000 -- wait for 10 minutes
 	atomically' (readTVar votes) >>= \case
 		Nothing -> lift . lift $ print "Very strange situation"
 		Just (keyboard_msg_id, scores) -> do
