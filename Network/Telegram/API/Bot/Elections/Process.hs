@@ -18,9 +18,10 @@ import "lens" Control.Lens ((^.))
 import "stm" Control.Concurrent.STM (STM, TVar, atomically, newTVarIO, modifyTVar', readTVar, writeTVar)
 import "text" Data.Text (Text, pack, unpack)
 import "telega" Network.Telegram.API.Bot (Telegram, ask')
-import "telega" Network.Telegram.API.Bot.Object (Callback, Message (Textual), Button (Button), Pressed (Callback), Keyboard (Inline))
+import "telega" Network.Telegram.API.Bot.Object (Callback, Message (Textual)
+	, Button (Button), Notification, Pressed (Callback), Keyboard (Inline))
 import "telega" Network.Telegram.API.Bot.Object.From (From (User, Bot), firstname, lastname)
-import "telega" Network.Telegram.API.Bot.Capacity (Editable (edit), Postable (post), Purgeable (purge))
+import "telega" Network.Telegram.API.Bot.Capacity (drop, edit, post, purge)
 import "telega" Network.Telegram.API.Bot.Property (Identifiable (identificator))
 import "transformers" Control.Monad.Trans.Class (lift)
 
@@ -62,14 +63,15 @@ participate from = ask' >>= \(chat_id, _, votes) -> atomically' (readTVar votes)
 		atomically' $ writeTVar votes $ Just (keyboard_msg_id, upd)
 		void $ edit @Keyboard (chat_id, keyboard_msg_id, new_keyboard)
 
-vote :: From -> Text -> Telegram Environment ()
-vote _ (readMaybe @Int . unpack -> Nothing) = pure ()
-vote from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(chat_id, _, votes) -> do
+vote :: Text -> From -> Text -> Telegram Environment ()
+vote _ _ (readMaybe @Int . unpack -> Nothing) = pure ()
+vote cbq_id from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(chat_id, _, votes) -> do
 	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx from) *> readTVar votes
 	atomically' considering >>= \case
 		Nothing -> lift . lift $ print "Very strange situation"
-		Just (keyboard_msg_id, scores) -> void $ edit @Keyboard
-			(chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores)
+		Just (keyboard_msg_id, scores) -> do
+			void $ edit @Keyboard (chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores)
+			void $ drop @Notification (cbq_id, "Ваш голос был учтен")
 
 atomically' :: STM a -> Telegram Environment a
 atomically' = lift . lift . atomically

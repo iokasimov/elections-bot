@@ -29,7 +29,7 @@ server (Settings token chat_id election_duration session votes) secret update =
 		liftIO . void . async . telegram session token (chat_id, election_duration, votes) $ webhook update
 
 webhook :: Update -> Telegram Environment ()
-webhook (Query _ (Datatext (Textual _ _ from _) dttxt)) = vote from dttxt
+webhook (Query _ (Datatext cbq_id (Textual _ _ from _) dttxt)) = vote cbq_id from dttxt
 webhook (Incoming _ (Command msg_id (Group chat_id _) from "initiate")) = initiate from *> purge @Message (chat_id, msg_id) *> conduct
 webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) = participate from *> purge @Message (chat_id, msg_id)
 webhook _ = pure ()
