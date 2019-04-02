@@ -3,10 +3,11 @@ module Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, cons
 import "base" Data.Eq ((==))
 import "base" Data.Foldable (find)
 import "base" Data.Function (const, (.), ($), (&))
-import "base" Data.Functor (fmap)
+-- import "base" Data.Functor (fmap)
+-- import "base" Data.Traversable (traverse)
 import "base" Data.Int (Int)
 import "base" Data.List (delete)
-import "base" Data.Maybe (Maybe, maybe)
+import "base" Data.Maybe (Maybe (Just, Nothing), maybe)
 import "base" Data.Tuple (fst)
 import "lens" Control.Lens (element, _2, (%~))
 import "telega" Network.Telegram.API.Bot.Object.From (From)
@@ -16,9 +17,9 @@ type Scores = [(From, [From])]
 type Votes = Maybe (Int, Scores)
 
 -- Application for participation
-nomination :: From -> Votes -> Votes
-nomination user = fmap . fmap $ \us ->
-	maybe ((user, []) : us) (const us) . find ((==) user . fst) $ us
+nomination :: From -> Scores -> Maybe Scores
+nomination user scores = scores & find ((==) user . fst)
+	& maybe (Just $ (user, []) : scores) (const $ Nothing)
 
 -- If you already voted for this candidate, your vote will be removed
 consider :: Int -> From -> Scores -> Scores

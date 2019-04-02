@@ -55,11 +55,12 @@ conduct = ask' >>= \(chat_id, election_duration, votes) -> do
 		atomically' . writeTVar votes $ Nothing
 
 participate :: From -> Telegram Environment ()
-participate from = ask' >>= \(chat_id, _, votes) ->
-	(atomically' $ modifyTVar' votes (nomination from) *> readTVar votes) >>= \case
-		Nothing -> void $ post @Message (chat_id, "Голосование не иницировано...", Nothing)
-		Just (keyboard_msg_id, scores) -> void $ edit @Keyboard
-			(chat_id, keyboard_msg_id, Inline $ pure . button <$> zip [0..] scores)
+participate from = ask' >>= \(chat_id, _, votes) -> atomically' (readTVar votes) >>= \case
+	Nothing -> void $ post @Message (chat_id, "Голосование не иницировано...", Nothing)
+	Just (keyboard_msg_id, scores) -> flip (maybe (pure ())) (nomination from scores) $ \upd -> do
+		let new_keyboard = Inline $ pure . button <$> zip [0..] upd
+		atomically' $ writeTVar votes $ Just (keyboard_msg_id, upd)
+		void $ edit @Keyboard (chat_id, keyboard_msg_id, new_keyboard)
 
 vote :: From -> Text -> Telegram Environment ()
 vote _ (readMaybe @Int . unpack -> Nothing) = pure ()
