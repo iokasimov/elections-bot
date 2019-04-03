@@ -4,8 +4,7 @@ module Network.Telegram.API.Bot.Elections.Locales
 import "base" Text.Read (Read)
 import "text" Data.Text (Text)
 
-data Locale = EN | RU
-	deriving Read
+data Locale = EN | RU deriving Read
 
 data Status = Started | Absented | Proceeded | Considered | Ended
 

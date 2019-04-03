@@ -26,7 +26,7 @@ deriving instance FromHttpApiData Token
 server :: Settings -> Server API
 server (Settings locale token chat_id election_duration session votes) secret update =
 	if secret /= token || (identificator $ update ^. chat) /= chat_id then throwError err403 else
-		liftIO . void . async . telegram session token (chat_id, election_duration, votes) $ webhook update
+		liftIO . void . async . telegram session token (locale, chat_id, election_duration, votes) $ webhook update
 
 webhook :: Update -> Telegram Environment ()
 webhook (Query _ (Datatext cbq_id (Textual _ _ from _) dttxt)) = vote cbq_id from dttxt

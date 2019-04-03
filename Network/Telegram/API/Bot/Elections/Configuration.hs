@@ -18,7 +18,7 @@ import "wreq" Network.Wreq.Session (Session, newAPISession)
 import Network.Telegram.API.Bot.Elections.Locales (Locale)
 import Network.Telegram.API.Bot.Elections.State (Votes)
 
-type Environment = (Int64, Int, TVar Votes)
+type Environment = (Locale, Int64, Int, TVar Votes)
 
 data Arguments = Arguments Locale Token Int64 Int
 
