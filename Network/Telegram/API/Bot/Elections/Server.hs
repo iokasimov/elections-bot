@@ -24,7 +24,7 @@ deriving instance ToHttpApiData Token
 deriving instance FromHttpApiData Token
 
 server :: Settings -> Server API
-server (Settings token chat_id election_duration session votes) secret update =
+server (Settings locale token chat_id election_duration session votes) secret update =
 	if secret /= token || (identificator $ update ^. chat) /= chat_id then throwError err403 else
 		liftIO . void . async . telegram session token (chat_id, election_duration, votes) $ webhook update
 

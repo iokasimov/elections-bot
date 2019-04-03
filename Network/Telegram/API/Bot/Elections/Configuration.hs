@@ -15,14 +15,18 @@ import "telega" Network.Telegram.API.Bot (Token (Token))
 import "text" Data.Text (pack)
 import "wreq" Network.Wreq.Session (Session, newAPISession)
 
+import Network.Telegram.API.Bot.Elections.Locales (Locale)
 import Network.Telegram.API.Bot.Elections.State (Votes)
 
 type Environment = (Int64, Int, TVar Votes)
 
-data Arguments = Arguments Token Int64 Int
+data Arguments = Arguments Locale Token Int64 Int
 
 options :: Parser Arguments
-options = Arguments <$> token <*> chat_id <*> election_duration where
+options = Arguments <$> locale <*> token <*> chat_id <*> election_duration  where
+
+	locale :: Parser Locale
+	locale = argument auto (metavar "LOCALE_LANGUAGE")
 
 	token :: Parser Token
 	token = Token . pack <$> argument str (metavar "TELEGRAM_TOKEN")
@@ -33,9 +37,9 @@ options = Arguments <$> token <*> chat_id <*> election_duration where
 	election_duration :: Parser Int
 	election_duration = argument auto (metavar "ELECTION_DURATION")
 
-data Settings = Settings Token Int64 Int Session (TVar Votes)
+data Settings = Settings Locale Token Int64 Int Session (TVar Votes)
 
 settings :: IO Settings
 settings = do
-	Arguments token chat_id election_duration <- execParser $ info options fullDesc
-	Settings token chat_id election_duration <$> newAPISession <*> newTVarIO Nothing
+	Arguments locale token chat_id election_duration <- execParser $ info options fullDesc
+	Settings locale token chat_id election_duration <$> newAPISession <*> newTVarIO Nothing
