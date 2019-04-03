@@ -83,7 +83,7 @@ vote :: Text -> From -> Text -> Telegram Environment ()
 vote _ _ (readMaybe @Int . unpack -> Nothing) = pure ()
 vote cbq_id from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(locale, chat_id, _, votes) -> do
 	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx from) *> readTVar votes
-	atomically' considering >>= maybe (pure ()) (adjuct_scores locale chat_id) where
+	atomically' considering >>= maybe (pure ()) (adjust_scores locale chat_id) where
 
 	adjust_scores :: Locale -> Int64 -> (Int, Scores) -> Telegram Environment ()
 	adjust_scores locale chat_id (keyboard_msg_id, scores) = do
