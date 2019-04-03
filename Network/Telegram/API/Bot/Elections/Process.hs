@@ -28,8 +28,9 @@ import Network.Telegram.API.Bot.Elections.Locales (Locale
 	, Status (Started, Absented, Proceeded, Considered, Ended), message)
 import Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, consider)
 
+-- Initiate elections, the initiator becomes a candidate automatically
 initiate :: From -> Telegram Environment ()
-initiate from = ask' >>= \(locale, chat_id, _, votes) -> (atomically' $ readTVar votes) >>=
+initiate from = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>=
 	maybe (show_candidates locale chat_id votes) (const $ already_initiated locale chat_id) where
 
 	already_initiated :: Locale -> Int64 -> Telegram Environment ()
@@ -44,6 +45,10 @@ initiate from = ask' >>= \(locale, chat_id, _, votes) -> (atomically' $ readTVar
 		atomically' . writeTVar votes . Just $
 			(keyboard_msg_id, [(from, [])])
 
+	start_voting :: Locale -> Text
+	start_voting = flip message Started
+
+-- After some election period summarize all scores for each candidate
 conduct :: Telegram Environment ()
 conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
 	lift . lift . threadDelay $ election_duration * 60000000
@@ -55,6 +60,16 @@ conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
 		void $ post @Message (chat_id, end_voting locale scores, Nothing)
 		atomically' . writeTVar votes $ Nothing
 
+	end_voting :: Locale -> Scores -> Text
+	end_voting locale scores = message locale Ended <> "\n" <>
+		foldr (\x acc -> line x <> acc) "" scores where
+
+		line :: (From, [From]) -> Text
+		line (from, voters) = "* " <> from ^. firstname
+			<> " " <> maybe "" id (from ^. lastname)
+			<> " : " <> (pack . show . length $ voters) <> "\n"
+
+-- Become a candidate
 participate :: From -> Telegram Environment ()
 participate from = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>= \case
 	Nothing -> void $ post @Message (chat_id, message locale Absented, Nothing)
@@ -63,34 +78,23 @@ participate from = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVa
 		atomically' $ writeTVar votes $ Just (keyboard_msg_id, upd)
 		void $ edit @Keyboard (chat_id, keyboard_msg_id, new_keyboard)
 
+-- 👍 or 👎 for some candidate
 vote :: Text -> From -> Text -> Telegram Environment ()
 vote _ _ (readMaybe @Int . unpack -> Nothing) = pure ()
 vote cbq_id from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(locale, chat_id, _, votes) -> do
 	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx from) *> readTVar votes
 	atomically' considering >>= maybe (pure ()) (adjuct_scores locale chat_id) where
 
-	adjuct_scores :: Locale -> Int64 -> (Int, Scores) -> Telegram Environment ()
-	adjuct_scores locale chat_id (keyboard_msg_id, scores) = do
+	adjust_scores :: Locale -> Int64 -> (Int, Scores) -> Telegram Environment ()
+	adjust_scores locale chat_id (keyboard_msg_id, scores) = do
 		void $ drop @Notification (cbq_id, message locale Considered)
 		void $ edit @Keyboard (chat_id, keyboard_msg_id
 			, Inline $ pure . button <$> zip [0..] scores)
-
-atomically' :: STM a -> Telegram Environment a
-atomically' = lift . lift . atomically
 
 button :: (Int, (From, [From])) -> Button
 button (idx, (from, n)) = flip Button (Callback . pack . show $ idx) $
 	from ^. firstname <> " " <> maybe "" id (from ^. lastname)
 		<> " : " <> (pack . show . length $ n)
 
-start_voting :: Locale -> Text
-start_voting = flip message Started
-
-end_voting :: Locale -> Scores -> Text
-end_voting locale scores = message locale Ended <> "\n" <>
-	foldr (\x acc -> line x <> acc) "" scores where
-
-	line :: (From, [From]) -> Text
-	line (from, voters) = "* " <> from ^. firstname
-		<> " " <> maybe "" id (from ^. lastname)
-		<> " : " <> (pack . show . length $ voters) <> "\n"
+atomically' :: STM a -> Telegram Environment a
+atomically' = lift . lift . atomically
