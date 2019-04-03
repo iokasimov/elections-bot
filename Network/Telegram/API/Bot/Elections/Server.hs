@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Network.Telegram.API.Bot.Elections.Server (API, server) where
 
 import "async" Control.Concurrent.Async (async)

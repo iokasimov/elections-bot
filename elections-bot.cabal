@@ -15,7 +15,7 @@ cabal-version:       >= 1.10
 
 source-repository head
   type: git
-  location: https://github.com/iokasimov/mafia-bot.git
+  location: https://github.com/iokasimov/elections-bot.git
 
 library
   exposed-modules:
@@ -35,7 +35,7 @@ executable bot
   main-is: Network/Telegram/API/Bot/Main.hs
   build-depends: elections-bot, base == 4.*, async, transformers, lens, text,warp, servant,
     servant-server, optparse-applicative, stm, wreq, telega
-  default-extensions:  GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
+  default-extensions: GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
     OverloadedStrings, StandaloneDeriving, TypeApplications, ViewPatterns,
     ScopedTypeVariables, TypeOperators, DataKinds, PackageImports
   ghc-options: -Wall -fno-warn-tabs
