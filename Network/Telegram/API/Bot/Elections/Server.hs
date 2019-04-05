@@ -12,10 +12,11 @@ import "base" Data.Functor (void)
 import "lens" Control.Lens ((^.))
 import "servant-server" Servant (Capture, ReqBody, Server, JSON, Post, FromHttpApiData, ToHttpApiData, type (:>), err403, throwError)
 import "telega" Network.Telegram.API.Bot (Telegram, Token (Token), telegram)
+import "telega" Network.Telegram.API.Bot (Has (focus))
 import "telega" Network.Telegram.API.Bot.Capacity (purge)
 import "telega" Network.Telegram.API.Bot.Property (identificator)
 import "telega" Network.Telegram.API.Bot.Object (Callback (Datatext), Chat (Group), Message (Textual, Command))
-import "telega" Network.Telegram.API.Bot.Object.Update (Update (Incoming, Query), chat)
+import "telega" Network.Telegram.API.Bot.Object.Update (Update (Incoming, Query))
 
 import Network.Telegram.API.Bot.Elections.Configuration (Environment, Settings (Settings))
 import Network.Telegram.API.Bot.Elections.Process (initiate, conduct, participate, vote)
@@ -27,7 +28,7 @@ deriving instance FromHttpApiData Token
 
 server :: Settings -> Server API
 server (Settings locale token chat_id election_duration session votes) secret update =
-	if secret /= token || (identificator $ update ^. chat) /= chat_id then throwError err403 else
+	if secret /= token || (identificator $ update ^. focus @Update @Chat) /= chat_id then throwError err403 else
 		liftIO . void . async . telegram session token (locale, chat_id, election_duration, votes) $ webhook update
 
 webhook :: Update -> Telegram Environment ()
