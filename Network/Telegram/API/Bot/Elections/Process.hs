@@ -17,10 +17,11 @@ import "lens" Control.Lens ((^.))
 import "stm" Control.Concurrent.STM (STM, TVar, atomically, modifyTVar', readTVar, writeTVar)
 import "text" Data.Text (Text, pack, unpack)
 import "telega" Network.Telegram.API.Bot (Telegram, ask')
+import "telega" Network.Telegram.API.Bot.Endpoint (Endpoint (request), Post)
 import "telega" Network.Telegram.API.Bot.Object (Message (Textual)
 	, Button (Button), Notification, Pressed (Callback), Keyboard (Inline))
 import "telega" Network.Telegram.API.Bot.Object.From (From, firstname, lastname)
-import "telega" Network.Telegram.API.Bot.Capacity (drop, edit, post, purge)
+import "telega" Network.Telegram.API.Bot.Capacity (drop, edit, purge)
 import "transformers" Control.Monad.Trans.Class (lift)
 
 import Network.Telegram.API.Bot.Elections.Configuration (Environment)
@@ -34,13 +35,14 @@ initiate from = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar v
 	maybe (show_candidates locale chat_id votes) (const $ already_initiated locale chat_id) where
 
 	already_initiated :: Locale -> Int64 -> Telegram Environment ()
-	already_initiated locale chat_id = void $ post @Message
+	already_initiated locale chat_id = void $ request @(Post Message) @Message
 		(chat_id, message locale Proceeded, Nothing)
 
 	show_candidates :: Locale -> Int64 -> TVar Votes -> Telegram Environment ()
 	show_candidates locale chat_id votes = do
-		msg <- post @Message (chat_id, start_voting locale, Just $
-			Inline . pure . pure $ button (0, (from, [])))
+		let keyboard = Inline . pure . pure $ button (0, (from, []))
+		let content = (chat_id, start_voting locale, Just $ keyboard)
+		msg <- request @(Post Message) @Message content
 		let Textual keyboard_msg_id _ _ _ = msg
 		atomically' . writeTVar votes . Just $
 			(keyboard_msg_id, [(from, [])])
@@ -57,7 +59,7 @@ conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
 	finish_election :: Locale -> Int64 -> TVar Votes -> (Int, Scores) -> Telegram Environment ()
 	finish_election locale chat_id votes (keyboard_msg_id, scores) = do
 		void $ purge @Message (chat_id, keyboard_msg_id)
-		void $ post @Message (chat_id, end_voting locale scores, Nothing)
+		request @(Post Message) @() (chat_id, end_voting locale scores, Nothing)
 		atomically' . writeTVar votes $ Nothing
 
 	end_voting :: Locale -> Scores -> Text
@@ -72,7 +74,7 @@ conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
 -- Become a candidate
 participate :: From -> Telegram Environment ()
 participate from = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>= \case
-	Nothing -> void $ post @Message (chat_id, message locale Absented, Nothing)
+	Nothing -> request @(Post Message) @() (chat_id, message locale Absented, Nothing)
 	Just (keyboard_msg_id, scores) -> flip (maybe (pure ())) (nomination from scores) $ \upd -> do
 		let new_keyboard = Inline $ pure . button <$> zip [0..] upd
 		atomically' $ writeTVar votes $ Just (keyboard_msg_id, upd)
