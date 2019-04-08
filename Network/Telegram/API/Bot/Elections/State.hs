@@ -3,8 +3,6 @@ module Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, cons
 import "base" Data.Eq ((==))
 import "base" Data.Foldable (find)
 import "base" Data.Function (const, (.), ($), (&))
--- import "base" Data.Functor (fmap)
--- import "base" Data.Traversable (traverse)
 import "base" Data.Int (Int)
 import "base" Data.List (delete)
 import "base" Data.Maybe (Maybe (Just, Nothing), maybe)

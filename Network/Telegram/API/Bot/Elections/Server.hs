@@ -13,7 +13,7 @@ import "lens" Control.Lens ((^.))
 import "servant-server" Servant (Capture, ReqBody, Server, JSON, Post, FromHttpApiData, ToHttpApiData, type (:>), err403, throwError)
 import "telega" Network.Telegram.API.Bot (Telegram, Token (Token), telegram)
 import "telega" Network.Telegram.API.Bot.Access (Access (access))
-import "telega" Network.Telegram.API.Bot.Capacity (purge)
+import "telega" Network.Telegram.API.Bot.Endpoint (Endpoint (request), Capacity (Purge))
 import "telega" Network.Telegram.API.Bot.Property (identificator)
 import "telega" Network.Telegram.API.Bot.Object (Callback (Datatext), Chat (Group), Message (Textual, Command))
 import "telega" Network.Telegram.API.Bot.Object.Update (Update (Incoming, Query))
@@ -33,6 +33,6 @@ server (Settings locale token chat_id election_duration session votes) secret up
 
 webhook :: Update -> Telegram Environment ()
 webhook (Query _ (Datatext cbq_id (Textual _ _ from _) dttxt)) = vote cbq_id from dttxt
-webhook (Incoming _ (Command msg_id (Group chat_id _) from "initiate")) = initiate from *> purge @Message (chat_id, msg_id) *> conduct
-webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) = participate from *> purge @Message (chat_id, msg_id)
+webhook (Incoming _ (Command msg_id (Group chat_id _) from "initiate")) = initiate from *> request @Purge @Message @()( chat_id, msg_id) *> conduct
+webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) = participate from *> request @Purge @Message @() (chat_id, msg_id)
 webhook _ = pure ()
