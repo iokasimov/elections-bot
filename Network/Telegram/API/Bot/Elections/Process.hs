@@ -37,7 +37,7 @@ initiate from = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar v
 	already_initiated locale chat_id = void $ request @Post @Message @Message
 		(chat_id, message locale Proceeded, Nothing)
 
-	show_candidates :: Locale -> Int64 -> TVar Votes -> Telegram Environment ()
+	show_candidates :: Locale -> Int64 -> TVar (Votes From From) -> Telegram Environment ()
 	show_candidates locale chat_id votes = do
 		let keyboard = Inline . pure . pure $ button (0, (from, []))
 		let content = (chat_id, start_voting locale, Just $ keyboard)
@@ -55,13 +55,13 @@ conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
 	lift . lift . threadDelay $ election_duration * 60000000
 	atomically' (readTVar votes) >>= maybe (pure ()) (finish_election locale chat_id votes) where
 
-	finish_election :: Locale -> Int64 -> TVar Votes -> (Int, Scores) -> Telegram Environment ()
+	finish_election :: Locale -> Int64 -> TVar (Votes From From) -> (Int, Scores From From) -> Telegram Environment ()
 	finish_election locale chat_id votes (keyboard_msg_id, scores) = do
 		request @Purge @Message @() (chat_id, keyboard_msg_id)
 		request @Post @Message @() (chat_id, end_voting locale scores, Nothing)
 		atomically' . writeTVar votes $ Nothing
 
-	end_voting :: Locale -> Scores -> Text
+	end_voting :: Locale -> Scores From From -> Text
 	end_voting locale scores = message locale Ended <> "\n" <>
 		foldr (\x acc -> line x <> acc) "" scores where
 
@@ -86,7 +86,7 @@ vote cbq_id from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(locale, 
 	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx from) *> readTVar votes
 	atomically' considering >>= maybe (pure ()) (adjust_scores locale chat_id) where
 
-	adjust_scores :: Locale -> Int64 -> (Int, Scores) -> Telegram Environment ()
+	adjust_scores :: Locale -> Int64 -> (Int, Scores From From) -> Telegram Environment ()
 	adjust_scores locale chat_id (keyboard_msg_id, scores) = do
 		request @Post @Notification @() (cbq_id, message locale Considered)
 		request @Edit @Keyboard (chat_id, keyboard_msg_id

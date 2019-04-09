@@ -12,13 +12,14 @@ import "optparse-applicative" Options.Applicative (Parser
 	, execParser, argument, auto, info, fullDesc, metavar, str)
 import "stm" Control.Concurrent.STM (TVar, newTVarIO)
 import "telega" Network.Telegram.API.Bot (Token (Token))
+import "telega" Network.Telegram.API.Bot.Object (From)
 import "text" Data.Text (pack)
 import "wreq" Network.Wreq.Session (Session, newAPISession)
 
 import Network.Telegram.API.Bot.Elections.Locales (Locale)
 import Network.Telegram.API.Bot.Elections.State (Votes)
 
-type Environment = (Locale, Int64, Int, TVar Votes)
+type Environment = (Locale, Int64, Int, TVar (Votes From From))
 
 data Arguments = Arguments Locale Token Int64 Int
 
@@ -37,7 +38,7 @@ options = Arguments <$> locale <*> token <*> chat_id <*> election_duration  wher
 	election_duration :: Parser Int
 	election_duration = argument auto (metavar "ELECTION_DURATION")
 
-data Settings = Settings Locale Token Int64 Int Session (TVar Votes)
+data Settings = Settings Locale Token Int64 Int Session (TVar (Votes From From))
 
 settings :: IO Settings
 settings = do

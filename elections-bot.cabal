@@ -38,4 +38,4 @@ executable bot
   default-extensions: GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
     OverloadedStrings, StandaloneDeriving, TypeApplications, ViewPatterns,
     ScopedTypeVariables, TypeOperators, DataKinds, PackageImports
-  ghc-options: -Wall -fno-warn-tabs
+  ghc-options: -Wall -fno-warn-tabs -Wno-unticked-promoted-constructors
