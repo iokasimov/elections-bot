@@ -1,5 +1,5 @@
 module Network.Telegram.API.Bot.Elections.Configuration
-	(Environment, Settings (..), settings) where
+	(Environment, Settings (..), settings, Votes) where
 
 import "base" Data.Int (Int, Int64)
 import "base" Data.Function ((.), ($))
@@ -12,12 +12,15 @@ import "optparse-applicative" Options.Applicative (Parser
 	, execParser, argument, auto, info, fullDesc, metavar, str)
 import "stm" Control.Concurrent.STM (TVar, newTVarIO)
 import "telega" Network.Telegram.API.Bot (Token (Token))
-import "telega" Network.Telegram.API.Bot.Object (From)
+import "telega" Network.Telegram.API.Bot.Object (From, Message)
+import "telega" Network.Telegram.API.Bot.Property (Identificator)
 import "text" Data.Text (pack)
 import "wreq" Network.Wreq.Session (Session, newAPISession)
 
 import Network.Telegram.API.Bot.Elections.Locales (Locale)
-import Network.Telegram.API.Bot.Elections.State (Votes)
+import Network.Telegram.API.Bot.Elections.State (Scores)
+
+type Votes subject object = Maybe (Identificator Message, Scores subject object)
 
 type Environment = (Locale, Int64, Int, TVar (Votes From From))
 

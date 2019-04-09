@@ -23,10 +23,10 @@ import "telega" Network.Telegram.API.Bot.Object (Message (Textual)
 import "telega" Network.Telegram.API.Bot.Object.From (From, firstname, lastname)
 import "transformers" Control.Monad.Trans.Class (lift)
 
-import Network.Telegram.API.Bot.Elections.Configuration (Environment)
+import Network.Telegram.API.Bot.Elections.Configuration (Environment, Votes)
 import Network.Telegram.API.Bot.Elections.Locales (Locale
 	, Status (Started, Absented, Proceeded, Considered, Ended), message)
-import Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, consider)
+import Network.Telegram.API.Bot.Elections.State (Scores, nomination, consider)
 
 -- Initiate elections, the initiator becomes a candidate automatically
 initiate :: From -> Telegram Environment ()
