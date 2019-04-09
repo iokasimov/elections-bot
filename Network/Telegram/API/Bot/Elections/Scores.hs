@@ -1,4 +1,4 @@
-module Network.Telegram.API.Bot.Elections.State (Scores, nomination, consider) where
+module Network.Telegram.API.Bot.Elections.Scores (Scores, nomination, consider) where
 
 import "base" Data.Eq (Eq ((==)))
 import "base" Data.Foldable (find)

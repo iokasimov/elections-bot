@@ -18,7 +18,7 @@ import "text" Data.Text (pack)
 import "wreq" Network.Wreq.Session (Session, newAPISession)
 
 import Network.Telegram.API.Bot.Elections.Locales (Locale)
-import Network.Telegram.API.Bot.Elections.State (Scores)
+import Network.Telegram.API.Bot.Elections.Scores (Scores)
 
 type Votes subject object = Maybe (Identificator Message, Scores subject object)
 

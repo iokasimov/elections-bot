@@ -19,7 +19,7 @@ import "telega" Network.Telegram.API.Bot.Object (Callback (Datatext), Chat (Grou
 import "telega" Network.Telegram.API.Bot.Object.Update (Update (Incoming, Query))
 
 import Network.Telegram.API.Bot.Elections.Configuration (Environment, Settings (Settings))
-import Network.Telegram.API.Bot.Elections.Process (initiate, conduct, participate, vote)
+import Network.Telegram.API.Bot.Elections.Operations (initiate, conduct, participate, vote)
 
 type API = "webhook" :> Capture "secret" Token :> ReqBody '[JSON] Update :> Post '[JSON] ()
 

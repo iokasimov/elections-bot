@@ -21,9 +21,9 @@ library
   exposed-modules:
     Network.Telegram.API.Bot.Elections.Configuration
     Network.Telegram.API.Bot.Elections.Locales
-    Network.Telegram.API.Bot.Elections.Process
+    Network.Telegram.API.Bot.Elections.Operations
     Network.Telegram.API.Bot.Elections.Server
-    Network.Telegram.API.Bot.Elections.State
+    Network.Telegram.API.Bot.Elections.Scores
   build-depends: base == 4.*, async, transformers, lens, text, warp,
     servant, servant-server, optparse-applicative, stm, wreq, telega
   default-extensions: GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,

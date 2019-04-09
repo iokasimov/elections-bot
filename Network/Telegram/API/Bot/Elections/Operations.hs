@@ -1,4 +1,4 @@
-module Network.Telegram.API.Bot.Elections.Process (initiate, conduct, participate, vote) where
+module Network.Telegram.API.Bot.Elections.Operations (initiate, conduct, participate, vote) where
 
 import "base" Control.Applicative (pure, (*>))
 import "base" Control.Concurrent (threadDelay)
@@ -26,7 +26,7 @@ import "transformers" Control.Monad.Trans.Class (lift)
 import Network.Telegram.API.Bot.Elections.Configuration (Environment, Votes)
 import Network.Telegram.API.Bot.Elections.Locales (Locale
 	, Status (Started, Absented, Proceeded, Considered, Ended), message)
-import Network.Telegram.API.Bot.Elections.State (Scores, nomination, consider)
+import Network.Telegram.API.Bot.Elections.Scores (Scores, nomination, consider)
 
 -- Initiate elections, the initiator becomes a candidate automatically
 initiate :: From -> Telegram Environment ()
