@@ -17,10 +17,10 @@ import "lens" Control.Lens ((^.))
 import "stm" Control.Concurrent.STM (STM, TVar, atomically, modifyTVar', readTVar, writeTVar)
 import "text" Data.Text (Text, pack, unpack)
 import "telega" Network.Telegram.API.Bot (Telegram, ask')
-import "telega" Network.Telegram.API.Bot.Endpoint (Endpoint (request), Capacity (Edit, Post, Purge))
-import "telega" Network.Telegram.API.Bot.Object (Message (Textual)
-	, Button (Button), Notification, Pressed (Callback), Keyboard (Inline))
+import "telega" Network.Telegram.API.Bot.Object (Message (Direct)
+	, Button (Button), Content (Textual), Notification, Pressed (Callback), Keyboard (Inline))
 import "telega" Network.Telegram.API.Bot.Object.From (From, firstname, lastname)
+import "telega" Network.Telegram.API.Bot.Property.Persistable (Persistable (request), Capacity (Edit, Post, Purge))
 import "transformers" Control.Monad.Trans.Class (lift)
 
 import Network.Telegram.API.Bot.Elections.Configuration (Environment)
@@ -42,7 +42,7 @@ initiate from = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar v
 		let keyboard = Inline . pure . pure $ button (0, (from, []))
 		let content = (chat_id, start_voting locale, Just $ keyboard)
 		msg <- request @Post @Message @Message content
-		let Textual keyboard_msg_id _ _ _ = msg
+		let Direct keyboard_msg_id _ _ (Textual _) = msg
 		atomically' . writeTVar votes . Just $
 			(keyboard_msg_id, [(from, [])])
 

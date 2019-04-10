@@ -12,10 +12,8 @@ import "base" Data.Functor (void)
 import "lens" Control.Lens ((^.))
 import "servant-server" Servant (Capture, ReqBody, Server, JSON, Post, FromHttpApiData, ToHttpApiData, type (:>), err403, throwError)
 import "telega" Network.Telegram.API.Bot (Telegram, Token (Token), telegram)
-import "telega" Network.Telegram.API.Bot.Access (Access (access))
-import "telega" Network.Telegram.API.Bot.Endpoint (Endpoint (request), Capacity (Purge))
-import "telega" Network.Telegram.API.Bot.Property (identificator)
-import "telega" Network.Telegram.API.Bot.Object (Callback (Datatext), Chat (Group), Message (Textual, Command))
+import "telega" Network.Telegram.API.Bot.Property (Accessible (access), Identifiable (identificator), Persistable (request), Capacity (Purge))
+import "telega" Network.Telegram.API.Bot.Object (Callback (Datatext), Chat (Group), Content (Textual, Command), Message (Direct))
 import "telega" Network.Telegram.API.Bot.Object.Update (Update (Incoming, Query))
 
 import Network.Telegram.API.Bot.Elections.Configuration (Environment, Settings (Settings))
@@ -32,7 +30,7 @@ server (Settings locale token chat_id election_duration session votes) secret up
 		liftIO . void . async . telegram session token (locale, chat_id, election_duration, votes) $ webhook update
 
 webhook :: Update -> Telegram Environment ()
-webhook (Query _ (Datatext cbq_id (Textual _ _ from _) dttxt)) = vote cbq_id from dttxt
-webhook (Incoming _ (Command msg_id (Group chat_id _) from "initiate")) = initiate from *> request @Purge @Message @()( chat_id, msg_id) *> conduct
-webhook (Incoming _ (Command msg_id (Group chat_id _) from "participate")) = participate from *> request @Purge @Message @() (chat_id, msg_id)
+webhook (Query _ (Datatext cbq_id (Direct msg_id _ from (Textual _)) dttxt)) = vote cbq_id from dttxt
+webhook (Incoming _ (Direct msg_id (Group chat_id _) from (Command "initiate"))) = initiate from *> request @Purge @Message @()( chat_id, msg_id) *> conduct
+webhook (Incoming _ (Direct msg_id (Group chat_id _) from (Command "participate"))) = participate from *> request @Purge @Message @() (chat_id, msg_id)
 webhook _ = pure ()
