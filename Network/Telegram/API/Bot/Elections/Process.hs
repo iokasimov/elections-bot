@@ -17,10 +17,10 @@ import "lens" Control.Lens ((^.))
 import "stm" Control.Concurrent.STM (STM, TVar, atomically, modifyTVar', readTVar, writeTVar)
 import "text" Data.Text (Text, pack, unpack)
 import "telega" Network.Telegram.API.Bot (Telegram, ask')
-import "telega" Network.Telegram.API.Bot.Object (Message (Direct)
-	, Button (Button), Content (Textual), Notification, Pressed (Callback), Keyboard (Inline))
-import "telega" Network.Telegram.API.Bot.Object.From (From, firstname, lastname)
-import "telega" Network.Telegram.API.Bot.Property.Persistable (Persistable (request), Capacity (Edit, Post, Purge))
+import "telega" Network.Telegram.API.Bot.Object (Button (Button), Content (Textual), Notification, Pressed (Callback), Keyboard (Inline))
+import "telega" Network.Telegram.API.Bot.Object.Sender (Sender, firstname, lastname)
+import "telega" Network.Telegram.API.Bot.Object.Update.Message (Message (Direct), Messaging (Directly))
+import "telega" Network.Telegram.API.Bot.Property.Persistable (Persistable (request), Capacity (Edit, Post, Purge), PL (PL))
 import "transformers" Control.Monad.Trans.Class (lift)
 
 import Network.Telegram.API.Bot.Elections.Configuration (Environment)
@@ -29,22 +29,22 @@ import Network.Telegram.API.Bot.Elections.Locales (Locale
 import Network.Telegram.API.Bot.Elections.State (Scores, Votes, nomination, consider)
 
 -- Initiate elections, the initiator becomes a candidate automatically
-initiate :: From -> Telegram Environment ()
-initiate from = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>=
+initiate :: Sender -> Telegram Environment ()
+initiate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>=
 	maybe (show_candidates locale chat_id votes) (const $ already_initiated locale chat_id) where
 
 	already_initiated :: Locale -> Int64 -> Telegram Environment ()
-	already_initiated locale chat_id = void $ request @Post @Message @Message
-		(chat_id, message locale Proceeded, Nothing)
+	already_initiated locale chat_id = request @Directly @Message @()
+		$ PL (chat_id, message locale Proceeded)
 
 	show_candidates :: Locale -> Int64 -> TVar Votes -> Telegram Environment ()
 	show_candidates locale chat_id votes = do
-		let keyboard = Inline . pure . pure $ button (0, (from, []))
-		let content = (chat_id, start_voting locale, Just $ keyboard)
-		msg <- request @Post @Message @Message content
-		let Direct keyboard_msg_id _ _ (Textual _) = msg
+		let keyboard = Inline . pure . pure $ button (0, (sender, []))
+		let content = (chat_id, start_voting locale, keyboard)
+		msg <- request @Post @Keyboard @Message $ PL content
+		let Direct keyboard_msg_id _ (Textual _) = msg
 		atomically' . writeTVar votes . Just $
-			(keyboard_msg_id, [(from, [])])
+			(keyboard_msg_id, [(sender, [])])
 
 	start_voting :: Locale -> Text
 	start_voting = flip message Started
@@ -57,44 +57,44 @@ conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
 
 	finish_election :: Locale -> Int64 -> TVar Votes -> (Int, Scores) -> Telegram Environment ()
 	finish_election locale chat_id votes (keyboard_msg_id, scores) = do
-		request @Purge @Message @() (chat_id, keyboard_msg_id)
-		request @Post @Message @() (chat_id, end_voting locale scores, Nothing)
+		request @Purge @Message @() $ PL (chat_id, keyboard_msg_id)
+		request @Directly @Message @() $ PL (chat_id, end_voting locale scores)
 		atomically' . writeTVar votes $ Nothing
 
 	end_voting :: Locale -> Scores -> Text
 	end_voting locale scores = message locale Ended <> "\n" <>
 		foldr (\x acc -> line x <> acc) "" scores where
 
-		line :: (From, [From]) -> Text
-		line (from, voters) = "* " <> from ^. firstname
-			<> " " <> maybe "" id (from ^. lastname)
+		line :: (Sender, [Sender]) -> Text
+		line (sender, voters) = "* " <> sender ^. firstname
+			<> " " <> maybe "" id (sender ^. lastname)
 			<> " : " <> (pack . show . length $ voters) <> "\n"
 
 -- Become a candidate
-participate :: From -> Telegram Environment ()
-participate from = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>= \case
-	Nothing -> request @Post @Message (chat_id, message locale Absented, Nothing)
-	Just (keyboard_msg_id, scores) -> flip (maybe (pure ())) (nomination from scores) $ \upd -> do
+participate :: Sender -> Telegram Environment ()
+participate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>= \case
+	Nothing -> request @Directly @Message $ PL (chat_id, message locale Absented)
+	Just (keyboard_msg_id, scores) -> flip (maybe (pure ())) (nomination sender scores) $ \upd -> do
 		let new_keyboard = Inline $ pure . button <$> zip [0..] upd
 		atomically' $ writeTVar votes $ Just (keyboard_msg_id, upd)
-		request @Edit @Keyboard @() (chat_id, keyboard_msg_id, new_keyboard)
+		request @Edit @Keyboard @() $ PL (chat_id, keyboard_msg_id, new_keyboard)
 
 -- 👍 or 👎 for some candidate
-vote :: Text -> From -> Text -> Telegram Environment ()
+vote :: Text -> Sender -> Text -> Telegram Environment ()
 vote _ _ (readMaybe @Int . unpack -> Nothing) = pure ()
-vote cbq_id from (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(locale, chat_id, _, votes) -> do
-	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx from) *> readTVar votes
+vote cbq_id sender (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(locale, chat_id, _, votes) -> do
+	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx sender) *> readTVar votes
 	atomically' considering >>= maybe (pure ()) (adjust_scores locale chat_id) where
 
 	adjust_scores :: Locale -> Int64 -> (Int, Scores) -> Telegram Environment ()
 	adjust_scores locale chat_id (keyboard_msg_id, scores) = do
-		request @Post @Notification @() (cbq_id, message locale Considered)
-		request @Edit @Keyboard (chat_id, keyboard_msg_id
+		request @Post @Notification @() $ PL (cbq_id, message locale Considered)
+		request @Edit @Keyboard $ PL (chat_id, keyboard_msg_id
 			, Inline $ pure . button <$> zip [0..] scores)
 
-button :: (Int, (From, [From])) -> Button
-button (idx, (from, n)) = flip Button (Callback . pack . show $ idx) $
-	from ^. firstname <> " " <> maybe "" id (from ^. lastname)
+button :: (Int, (Sender, [Sender])) -> Button
+button (idx, (sender, n)) = flip Button (Callback . pack . show $ idx) $
+	sender ^. firstname <> " " <> maybe "" id (sender ^. lastname)
 		<> " : " <> (pack . show . length $ n)
 
 atomically' :: STM a -> Telegram Environment a
