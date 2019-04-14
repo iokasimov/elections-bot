@@ -14,7 +14,7 @@ import "transformers" Control.Monad.Trans.Class (lift)
 import "lens" Control.Lens ((^.))
 import "servant-server" Servant (Capture, ReqBody, Server, JSON, Post, FromHttpApiData, ToHttpApiData, type (:>), err403, throwError)
 import "telega" Network.Telegram.API.Bot (Telegram, Token (Token), telegram)
-import "telega" Network.Telegram.API.Bot.Property (Accessible (access), Identifiable (identificator), Persistable (request), Capacity (Purge), PL (PL))
+import "telega" Network.Telegram.API.Bot.Property (Accessible (access), Identifiable (identificator), Persistable (request), Capacity (Purge'), PL (PL))
 import "telega" Network.Telegram.API.Bot.Object (Callback (Datatext), Origin (Group), Content (Textual, Command), Message (Direct, Forward, Reply))
 import "telega" Network.Telegram.API.Bot.Object.Update (Update (Incoming, Query))
 
@@ -33,6 +33,6 @@ server (Settings locale token chat_id election_duration session votes) secret up
 
 webhook :: Update -> Telegram Environment ()
 webhook (Query _ (Datatext cbq_id (Direct _ (Group chat_id _ sender) (Textual _)) dttxt)) = vote cbq_id sender dttxt
-webhook (Incoming _ (Direct msg_id (Group chat_id _ sender) (Command "initiate"))) = initiate sender *> request @Purge @Message @() (PL (chat_id, msg_id)) *> conduct
-webhook (Incoming _ (Direct msg_id (Group chat_id _ sender) (Command "participate"))) = participate sender *> request @Purge @Message @() (PL (chat_id, msg_id))
+webhook (Incoming _ (Direct msg_id (Group chat_id _ sender) (Command "initiate"))) = initiate sender *> request @'Purge' @Message @() (PL (chat_id, msg_id)) *> conduct
+webhook (Incoming _ (Direct msg_id (Group chat_id _ sender) (Command "participate"))) = participate sender *> request @'Purge' @Message @() (PL (chat_id, msg_id))
 webhook _ = pure ()
