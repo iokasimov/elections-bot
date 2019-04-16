@@ -19,12 +19,12 @@ source-repository head
 
 library
   exposed-modules:
-    Network.Telegram.API.Bot.Elections.Configuration
-    Network.Telegram.API.Bot.Elections.Locales
-    Network.Telegram.API.Bot.Elections.Process
-    Network.Telegram.API.Bot.Elections.Server
-    Network.Telegram.API.Bot.Elections.State
-  build-depends: base == 4.*, async, transformers, lens, text, warp,
+    Network.API.Telegram.Bot.Elections.Configuration
+    Network.API.Telegram.Bot.Elections.Locales
+    Network.API.Telegram.Bot.Elections.Process
+    Network.API.Telegram.Bot.Elections.Server
+    Network.API.Telegram.Bot.Elections.State
+  build-depends: base == 4.*, async, tagged, transformers, lens, text, warp,
     servant, servant-server, optparse-applicative, stm, wreq, telega
   default-extensions: GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
     OverloadedStrings, StandaloneDeriving, TypeApplications, ViewPatterns,
@@ -32,8 +32,8 @@ library
   ghc-options: -Wall -fno-warn-tabs
 
 executable bot
-  main-is: Network/Telegram/API/Bot/Main.hs
-  build-depends: elections-bot, base == 4.*, async, transformers, lens, text,warp, servant,
+  main-is: Network/API/Telegram/Bot/Main.hs
+  build-depends: elections-bot, base == 4.*, async, tagged, transformers, lens, text,warp, servant,
     servant-server, optparse-applicative, stm, wreq, telega
   default-extensions: GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
     OverloadedStrings, StandaloneDeriving, TypeApplications, ViewPatterns,

@@ -1,4 +1,4 @@
-module Network.Telegram.API.Bot.Elections.Locales
+module Network.API.Telegram.Bot.Elections.Locales
 	(Locale (..), Status (..), message) where
 
 import "base" Text.Read (Read)

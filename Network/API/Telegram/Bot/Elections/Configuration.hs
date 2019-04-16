@@ -1,4 +1,4 @@
-module Network.Telegram.API.Bot.Elections.Configuration
+module Network.API.Telegram.Bot.Elections.Configuration
 	(Environment, Settings (..), settings) where
 
 import "base" Data.Int (Int, Int64)
@@ -11,12 +11,12 @@ import "base" Prelude (negate)
 import "optparse-applicative" Options.Applicative (Parser
 	, execParser, argument, auto, info, fullDesc, metavar, str)
 import "stm" Control.Concurrent.STM (TVar, newTVarIO)
-import "telega" Network.Telegram.API.Bot (Token (Token))
+import "telega" Network.API.Telegram.Bot (Token (Token))
 import "text" Data.Text (pack)
 import "wreq" Network.Wreq.Session (Session, newAPISession)
 
-import Network.Telegram.API.Bot.Elections.Locales (Locale)
-import Network.Telegram.API.Bot.Elections.State (Votes)
+import Network.API.Telegram.Bot.Elections.Locales (Locale)
+import Network.API.Telegram.Bot.Elections.State (Votes)
 
 type Environment = (Locale, Int64, Int, TVar Votes)
 
