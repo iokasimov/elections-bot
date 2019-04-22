@@ -14,7 +14,7 @@ type Scores = [(Sender, [Sender])]
 
 type Votes = Maybe (Int, Scores)
 
--- ApTaggedication for participation
+-- Application for participation
 nomination :: Sender -> Scores -> Maybe Scores
 nomination user scores = scores & find ((==) user . fst)
 	& maybe (Just $ (user, []) : scores) (const $ Nothing)
