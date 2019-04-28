@@ -13,15 +13,16 @@ import "base" Data.Semigroup ((<>))
 import "base" Prelude ((*))
 import "base" Text.Read (readMaybe)
 import "base" Text.Show (show)
-import "lens" Control.Lens ((^.))
+import "lens" Control.Lens (view, (^.))
 import "stm" Control.Concurrent.STM (STM, TVar, atomically, modifyTVar', readTVar, writeTVar)
 import "text" Data.Text (Text, pack, unpack)
 import "telega" Network.API.Telegram.Bot (Telegram, ask')
+import "telega" Network.API.Telegram.Bot.Field.Name (Name, First, Last)
 import "telega" Network.API.Telegram.Bot.Object (Button (Button), Content (Textual), Notification, Pressed (Callback), Keyboard (Inline))
-import "telega" Network.API.Telegram.Bot.Object.Sender (Sender, firstname, lastname)
+import "telega" Network.API.Telegram.Bot.Object.Sender (Sender)
 import "telega" Network.API.Telegram.Bot.Object.Update.Callback (Trigger (Trigger), Notification)
 import "telega" Network.API.Telegram.Bot.Object.Update.Message (Message (Direct), Send (Send), Edit (Edit), Delete (Delete))
-import "telega" Network.API.Telegram.Bot.Property.Persistable (Persistable (persist, persist_))
+import "telega" Network.API.Telegram.Bot.Property (Accessible (access), Persistable (persist, persist_))
 import "transformers" Control.Monad.Trans.Class (lift)
 import "with" Data.With (type (:&:)((:&:)))
 
@@ -40,7 +41,6 @@ initiate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar
 
 	show_candidates :: Locale -> Int64 -> TVar Votes -> Telegram Environment ()
 	show_candidates locale chat_id votes = do
-		-- lift . lift . print $ sender
 		let keyboard = Inline . pure . pure $ button (0, (sender, []))
 		msg <- persist . Send chat_id $ start_voting locale :&: keyboard
 		let Direct keyboard_msg_id _ (Textual _) = msg
@@ -67,8 +67,8 @@ conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
 		foldr (\x acc -> line x <> acc) "" scores where
 
 		line :: (Sender, [Sender]) -> Text
-		line (sender, voters) = "* " <> sender ^. firstname
-			<> " " <> maybe "" id (sender ^. lastname)
+		line (sender, voters) = "* " <> (sender ^. access @(First Name) . access @Text)
+			<> " " <> maybe "" (view $ access @Text) (sender ^. access @(Maybe (Last Name)))
 			<> " : " <> (pack . show . length $ voters) <> "\n"
 
 -- Become a candidate
@@ -95,8 +95,9 @@ vote cbq_id sender (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(locale
 
 button :: (Int, (Sender, [Sender])) -> Button
 button (idx, (sender, n)) = flip Button (Callback . pack . show $ idx) $
-	sender ^. firstname <> " " <> maybe "" id (sender ^. lastname)
-		<> " : " <> (pack . show . length $ n)
+	(sender ^. access @(First Name) . access @Text) <> " "
+	<> maybe "" (view $ access @Text) (sender ^. access @(Maybe (Last Name)))
+	<> " : " <> (pack . show . length $ n)
 
 atomically' :: STM a -> Telegram Environment a
 atomically' = lift . lift . atomically
