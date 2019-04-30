@@ -4,9 +4,9 @@ import "base" Control.Applicative (pure, (*>))
 import "base" Control.Concurrent (threadDelay)
 import "base" Control.Monad ((>>=))
 import "base" Data.Foldable (foldr, length)
-import "base" Data.Function (const, flip, id, (.), ($))
+import "base" Data.Function (const, flip, (.), ($))
 import "base" Data.Functor (fmap, (<$>))
-import "base" Data.Int (Int, Int64)
+import "base" Data.Int (Int)
 import "base" Data.List (zip)
 import "base" Data.Maybe (Maybe (Just, Nothing), maybe)
 import "base" Data.Semigroup ((<>))
@@ -18,11 +18,12 @@ import "stm" Control.Concurrent.STM (STM, TVar, atomically, modifyTVar', readTVa
 import "text" Data.Text (Text, pack, unpack)
 import "telega" Network.API.Telegram.Bot (Telegram, ask')
 import "telega" Network.API.Telegram.Bot.Field.Name (Name, First, Last)
-import "telega" Network.API.Telegram.Bot.Object (Button (Button), Content (Textual), Notification, Pressed (Callback), Keyboard (Inline))
+import "telega" Network.API.Telegram.Bot.Object (Button (Button), Content (Textual), Pressed (Callback), Keyboard (Inline))
+import "telega" Network.API.Telegram.Bot.Object.Chat (Chat)
 import "telega" Network.API.Telegram.Bot.Object.Sender (Sender)
-import "telega" Network.API.Telegram.Bot.Object.Update.Callback (Trigger (Trigger), Notification)
+import "telega" Network.API.Telegram.Bot.Object.Update.Callback (Callback, Trigger (Trigger), Notification)
 import "telega" Network.API.Telegram.Bot.Object.Update.Message (Message (Direct), Send (Send), Edit (Edit), Delete (Delete))
-import "telega" Network.API.Telegram.Bot.Property (Accessible (access), Persistable (persist, persist_))
+import "telega" Network.API.Telegram.Bot.Property (Accessible (access), Persistable (persist, persist_), ID)
 import "transformers" Control.Monad.Trans.Class (lift)
 import "with" Data.With (type (:&:)((:&:)))
 
@@ -36,10 +37,10 @@ initiate :: Sender -> Telegram Environment ()
 initiate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>=
 	maybe (show_candidates locale chat_id votes) (const $ already_initiated locale chat_id) where
 
-	already_initiated :: Locale -> Int64 -> Telegram Environment ()
+	already_initiated :: Locale -> ID Chat -> Telegram Environment ()
 	already_initiated locale chat_id = persist_ . Send chat_id $ message locale Proceeded
 
-	show_candidates :: Locale -> Int64 -> TVar Votes -> Telegram Environment ()
+	show_candidates :: Locale -> ID Chat -> TVar Votes -> Telegram Environment ()
 	show_candidates locale chat_id votes = do
 		let keyboard = Inline . pure . pure $ button (0, (sender, []))
 		msg <- persist . Send chat_id $ start_voting locale :&: keyboard
@@ -56,7 +57,7 @@ conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
 	lift . lift . threadDelay $ election_duration * 60000000
 	atomically' (readTVar votes) >>= maybe (pure ()) (finish_election locale chat_id votes) where
 
-	finish_election :: Locale -> Int64 -> TVar Votes -> (Int, Scores) -> Telegram Environment ()
+	finish_election :: Locale -> ID Chat -> TVar Votes -> (ID Message, Scores) -> Telegram Environment ()
 	finish_election locale chat_id votes (keyboard_msg_id, scores) = do
 		persist_ $ Delete @Message chat_id keyboard_msg_id
 		persist_ . Send chat_id $ end_voting locale scores
@@ -81,13 +82,13 @@ participate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readT
 		persist_ $ Edit chat_id keyboard_msg_id new_keyboard
 
 -- 👍 or 👎 for some candidate
-vote :: Text -> Sender -> Text -> Telegram Environment ()
+vote :: ID Callback -> Sender -> Text -> Telegram Environment ()
 vote _ _ (readMaybe @Int . unpack -> Nothing) = pure ()
 vote cbq_id sender (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(locale, chat_id, _, votes) -> do
 	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx sender) *> readTVar votes
 	atomically' considering >>= maybe (pure ()) (adjust_scores locale chat_id) where
 
-	adjust_scores :: Locale -> Int64 -> (Int, Scores) -> Telegram Environment ()
+	adjust_scores :: Locale -> ID Chat -> (ID Message, Scores) -> Telegram Environment ()
 	adjust_scores locale chat_id (keyboard_msg_id, scores) = do
 		persist . Trigger @Notification cbq_id $ message locale Considered
 		persist_ . Edit @Keyboard chat_id keyboard_msg_id . Inline $

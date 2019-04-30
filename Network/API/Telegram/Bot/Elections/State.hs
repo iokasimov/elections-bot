@@ -9,10 +9,11 @@ import "base" Data.Maybe (Maybe (Just, Nothing), maybe)
 import "base" Data.Tuple (fst)
 import "lens" Control.Lens (element, _2, (%~))
 import "telega" Network.API.Telegram.Bot.Object.Sender (Sender)
+import "telega" Network.API.Telegram.Bot.Object.Update.Message (Message, ID)
 
 type Scores = [(Sender, [Sender])]
 
-type Votes = Maybe (Int, Scores)
+type Votes = Maybe (ID Message, Scores)
 
 -- Application for participation
 nomination :: Sender -> Scores -> Maybe Scores
