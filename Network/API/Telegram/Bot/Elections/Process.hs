@@ -21,7 +21,6 @@ import "telega" Network.API.Telegram.Bot.Field.Name (Name, First, Last)
 import "telega" Network.API.Telegram.Bot.Object (Button (Button), Content (Textual), Pressed (Callback), Keyboard (Inline))
 import "telega" Network.API.Telegram.Bot.Object.Chat (Chat)
 import "telega" Network.API.Telegram.Bot.Object.Sender (Sender)
-import "telega" Network.API.Telegram.Bot.Object.Update.Callback (Callback, Trigger (Trigger), Notification)
 import "telega" Network.API.Telegram.Bot.Object.Update.Message (Message (Direct), Send (Send), Edit (Edit), Delete (Delete))
 import "telega" Network.API.Telegram.Bot.Property (Accessible (access), Persistable (persist, persist_), ID)
 import "transformers" Control.Monad.Trans.Class (lift)
@@ -29,7 +28,7 @@ import "with" Data.With (type (:&:)((:&:)))
 
 import Network.API.Telegram.Bot.Elections.Configuration (Environment)
 import Network.API.Telegram.Bot.Elections.Locales (Locale
-	, Status (Started, Absented, Proceeded, Considered, Ended), message)
+	, Status (Started, Absented, Proceeded, Ended), message)
 import Network.API.Telegram.Bot.Elections.State (Scores, Votes, nomination, consider)
 
 -- Initiate elections, the initiator becomes a candidate automatically
@@ -82,15 +81,14 @@ participate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readT
 		persist_ $ Edit chat_id keyboard_msg_id new_keyboard
 
 -- 👍 or 👎 for some candidate
-vote :: ID Callback -> Sender -> Text -> Telegram Environment ()
-vote _ _ (readMaybe @Int . unpack -> Nothing) = pure ()
-vote cbq_id sender (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(locale, chat_id, _, votes) -> do
+vote :: Sender -> Text -> Telegram Environment ()
+vote _ (readMaybe @Int . unpack -> Nothing) = pure ()
+vote sender (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(_, chat_id, _, votes) -> do
 	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx sender) *> readTVar votes
-	atomically' considering >>= maybe (pure ()) (adjust_scores locale chat_id) where
+	atomically' considering >>= maybe (pure ()) (adjust_scores chat_id) where
 
-	adjust_scores :: Locale -> ID Chat -> (ID Message, Scores) -> Telegram Environment ()
-	adjust_scores locale chat_id (keyboard_msg_id, scores) = do
-		persist . Trigger @Notification cbq_id $ message locale Considered
+	adjust_scores :: ID Chat -> (ID Message, Scores) -> Telegram Environment ()
+	adjust_scores chat_id (keyboard_msg_id, scores) = do
 		persist_ . Edit @Keyboard chat_id keyboard_msg_id . Inline $
 			pure . button <$> zip [0..] scores
 

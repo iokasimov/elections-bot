@@ -27,14 +27,12 @@ deriving instance ToHttpApiData Token
 deriving instance FromHttpApiData Token
 
 server :: Settings -> Server API
-server (Settings locale token chat_id election_duration session votes) secret update =
+server (Settings locale token chat_id election_duration votes) secret update =
 	if secret /= token || update ^. access /= chat_id then throwError err403 else
-		liftIO . void . async . telegram session token
-			(locale, chat_id, election_duration, votes)
-				$ webhook update
+		liftIO . void . async . telegram token (locale, chat_id, election_duration, votes) $ webhook update
 
 webhook :: Update -> Telegram Environment ()
-webhook (Query _ (Datatext cbq_id sender _ dttxt)) = vote cbq_id sender dttxt
+webhook (Query _ (Datatext _ sender _ dttxt)) = vote sender dttxt
 webhook (Incoming _ (Direct msg_id (Group chat_id _ sender) (Command cmd))) = case cmd of
 	"initiate" -> initiate sender *> del_cmd chat_id msg_id *> conduct
 	"participate" -> participate sender *> del_cmd chat_id msg_id

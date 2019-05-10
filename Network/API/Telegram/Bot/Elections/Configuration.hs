@@ -14,7 +14,6 @@ import "stm" Control.Concurrent.STM (TVar, newTVarIO)
 import "telega" Network.API.Telegram.Bot (Token (Token))
 import Network.API.Telegram.Bot.Object.Chat (Chat, ID (CHAT))
 import "text" Data.Text (pack)
-import "wreq" Network.Wreq.Session (Session, newAPISession)
 
 import Network.API.Telegram.Bot.Elections.Locales (Locale)
 import Network.API.Telegram.Bot.Elections.State (Votes)
@@ -38,9 +37,9 @@ options = Arguments <$> locale <*> token <*> chat_id <*> election_duration where
 	election_duration :: Parser Int
 	election_duration = argument auto (metavar "ELECTION_DURATION")
 
-data Settings = Settings Locale Token (ID Chat) Int Session (TVar Votes)
+data Settings = Settings Locale Token (ID Chat) Int (TVar Votes)
 
 settings :: IO Settings
 settings = do
 	Arguments locale token chat_id election_duration <- execParser $ info options fullDesc
-	Settings locale token chat_id election_duration <$> newAPISession <*> newTVarIO Nothing
+	Settings locale token chat_id election_duration <$> newTVarIO Nothing
