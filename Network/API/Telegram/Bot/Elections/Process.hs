@@ -16,13 +16,11 @@ import "base" Text.Show (show)
 import "lens" Control.Lens (view, (^.))
 import "stm" Control.Concurrent.STM (STM, TVar, atomically, modifyTVar', readTVar, writeTVar)
 import "text" Data.Text (Text, pack, unpack)
-import "telega" Network.API.Telegram.Bot (Telegram, ask')
+import "telega" Network.API.Telegram.Bot (Telegram, environment)
 import "telega" Network.API.Telegram.Bot.Field.Name (Name, First, Last)
-import "telega" Network.API.Telegram.Bot.Object (Button (Button), Content (Textual), Pressed (Callback), Keyboard (Inline))
-import "telega" Network.API.Telegram.Bot.Object.Chat (Chat)
-import "telega" Network.API.Telegram.Bot.Object.Sender (Sender)
+import "telega" Network.API.Telegram.Bot.Object (Chat, Sender, Button (Button), Content (Textual), Pressed (Callback), Keyboard (Inline))
 import "telega" Network.API.Telegram.Bot.Object.Update.Message (Message (Direct), Send (Send), Edit (Edit), Delete (Delete))
-import "telega" Network.API.Telegram.Bot.Property (Accessible (access), Persistable (persist, persist_), ID)
+import "telega" Network.API.Telegram.Bot.Property (ID, access, persist, persist_)
 import "transformers" Control.Monad.Trans.Class (lift)
 import "with" Data.With (type (:&:)((:&:)))
 
@@ -33,7 +31,7 @@ import Network.API.Telegram.Bot.Elections.State (Scores, Votes, nomination, cons
 
 -- Initiate elections, the initiator becomes a candidate automatically
 initiate :: Sender -> Telegram Environment ()
-initiate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>=
+initiate sender = environment >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>=
 	maybe (show_candidates locale chat_id votes) (const $ already_initiated locale chat_id) where
 
 	already_initiated :: Locale -> ID Chat -> Telegram Environment ()
@@ -52,7 +50,7 @@ initiate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar
 
 -- After some election period summarize all scores for each candidate
 conduct :: Telegram Environment ()
-conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
+conduct = environment >>= \(locale, chat_id, election_duration, votes) -> do
 	lift . lift . threadDelay $ election_duration * 60000000
 	atomically' (readTVar votes) >>= maybe (pure ()) (finish_election locale chat_id votes) where
 
@@ -73,7 +71,7 @@ conduct = ask' >>= \(locale, chat_id, election_duration, votes) -> do
 
 -- Become a candidate
 participate :: Sender -> Telegram Environment ()
-participate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>= \case
+participate sender = environment >>= \(locale, chat_id, _, votes) -> atomically' (readTVar votes) >>= \case
 	Nothing -> persist_ $ Send chat_id $ message locale Absented
 	Just (keyboard_msg_id, scores) -> flip (maybe (pure ())) (nomination sender scores) $ \upd -> do
 		let new_keyboard = Inline $ pure . button <$> zip [0..] upd
@@ -83,7 +81,7 @@ participate sender = ask' >>= \(locale, chat_id, _, votes) -> atomically' (readT
 -- 👍 or 👎 for some candidate
 vote :: Sender -> Text -> Telegram Environment ()
 vote _ (readMaybe @Int . unpack -> Nothing) = pure ()
-vote sender (readMaybe @Int . unpack -> Just cnd_idx) = ask' >>= \(_, chat_id, _, votes) -> do
+vote sender (readMaybe @Int . unpack -> Just cnd_idx) = environment >>= \(_, chat_id, _, votes) -> do
 	let considering = modifyTVar' votes (fmap . fmap $ consider cnd_idx sender) *> readTVar votes
 	atomically' considering >>= maybe (pure ()) (adjust_scores chat_id) where
 
