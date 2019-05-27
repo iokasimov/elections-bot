@@ -21,8 +21,8 @@ import "telega" Network.API.Telegram.Bot.Field.Name (Name, First, Last)
 import "telega" Network.API.Telegram.Bot.Object (Chat, Sender, Button (Button), Content (Textual), Pressed (Callback), Keyboard (Inline))
 import "telega" Network.API.Telegram.Bot.Object.Update.Message (Message (Direct), Send (Send), Edit (Edit), Delete (Delete))
 import "telega" Network.API.Telegram.Bot.Property (ID, access, persist, persist_)
+import "telega" Network.API.Telegram.Bot.Utils (type (:*:)((:*:)))
 import "transformers" Control.Monad.Trans.Class (lift)
-import "with" Data.With (type (:&:)((:&:)))
 
 import Network.API.Telegram.Bot.Elections.Configuration (Environment)
 import Network.API.Telegram.Bot.Elections.Locales (Locale
@@ -40,7 +40,7 @@ initiate sender = environment >>= \(locale, chat_id, _, votes) -> atomically' (r
 	show_candidates :: Locale -> ID Chat -> TVar Votes -> Telegram Environment ()
 	show_candidates locale chat_id votes = do
 		let keyboard = Inline . pure . pure $ button (0, (sender, []))
-		msg <- persist . Send chat_id $ start_voting locale :&: keyboard
+		msg <- persist . Send chat_id $ start_voting locale :*: keyboard
 		let Direct keyboard_msg_id _ (Textual _) = msg
 		atomically' . writeTVar votes . Just $
 			(keyboard_msg_id, [(sender, [])])

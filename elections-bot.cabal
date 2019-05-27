@@ -25,7 +25,7 @@ library
     Network.API.Telegram.Bot.Elections.Server
     Network.API.Telegram.Bot.Elections.State
   build-depends: base == 4.*, async, tagged, transformers, lens, text, warp,
-    servant, servant-server, optparse-applicative, stm, with, wreq, telega
+    servant, servant-server, optparse-applicative, stm, wreq, telega
   default-extensions: GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
     OverloadedStrings, StandaloneDeriving, TypeApplications, ViewPatterns,
     ScopedTypeVariables, TypeOperators, DataKinds, PackageImports
@@ -33,7 +33,13 @@ library
 
 executable bot
   main-is: Network/API/Telegram/Bot/Main.hs
-  build-depends: elections-bot, base == 4.*, async, tagged, with, transformers, lens, text, warp, servant,
+  other-modules:
+    Network.API.Telegram.Bot.Elections.Configuration
+    Network.API.Telegram.Bot.Elections.Locales
+    Network.API.Telegram.Bot.Elections.Process
+    Network.API.Telegram.Bot.Elections.Server
+    Network.API.Telegram.Bot.Elections.State
+  build-depends: elections-bot, base == 4.*, async, tagged, transformers, lens, text, warp, servant,
     servant-server, optparse-applicative, stm, wreq, telega
   default-extensions: GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
     OverloadedStrings, StandaloneDeriving, TypeApplications, ViewPatterns,
