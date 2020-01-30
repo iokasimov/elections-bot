@@ -22,11 +22,10 @@ import "telega" Network.API.Telegram.Bot.Object (Chat, Sender, Button (Button), 
 import "telega" Network.API.Telegram.Bot.Object.Update.Message (Message (Direct), Send (Send), Edit (Edit), Delete (Delete))
 import "telega" Network.API.Telegram.Bot.Property (ID, access, persist, persist_)
 import "telega" Network.API.Telegram.Bot.Utils (type (:*:)((:*:)))
-import "transformers" Control.Monad.Trans.Class (lift)
+import "joint" Control.Joint (lift)
 
 import Network.API.Telegram.Bot.Elections.Configuration (Environment)
-import Network.API.Telegram.Bot.Elections.Locales (Locale
-	, Status (Started, Absented, Proceeded, Ended), message)
+import Network.API.Telegram.Bot.Elections.Locales (Locale, Status (Started, Absented, Proceeded, Ended), message)
 import Network.API.Telegram.Bot.Elections.State (Scores, Votes, nomination, consider)
 
 -- Initiate elections, the initiator becomes a candidate automatically
@@ -51,7 +50,7 @@ initiate sender = environment >>= \(locale, chat_id, _, votes) -> atomically' (r
 -- After some election period summarize all scores for each candidate
 conduct :: Telegram Environment ()
 conduct = environment >>= \(locale, chat_id, election_duration, votes) -> do
-	lift . lift . threadDelay $ election_duration * 60000000
+	lift . threadDelay $ election_duration * 60000000
 	atomically' (readTVar votes) >>= maybe (pure ()) (finish_election locale chat_id votes) where
 
 	finish_election :: Locale -> ID Chat -> TVar Votes -> (ID Message, Scores) -> Telegram Environment ()
@@ -97,4 +96,4 @@ button (idx, (sender, n)) = flip Button (Callback . pack . show $ idx) $
 	<> " : " <> (pack . show . length $ n)
 
 atomically' :: STM a -> Telegram Environment a
-atomically' = lift . lift . atomically
+atomically' = lift . atomically

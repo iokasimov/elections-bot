@@ -40,7 +40,10 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
-- {git: "https://github.com/iokasimov/telega", commit: "7aa168a"}
+- git: git://github.com/iokasimov/telega
+  commit: 1895b8afa30b696e6d8d16efb37dbc0846219855
+- git: git://github.com/iokasimov/joint
+  commit: 377a8bfb68d72e78215537cce0b56e31400fd611
 
 # Override default flag values for local packages and extra-deps
 flags: {}
