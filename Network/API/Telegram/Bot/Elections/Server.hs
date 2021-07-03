@@ -9,6 +9,8 @@ import "base" Data.Bool ((||))
 import "base" Data.Eq ((/=))
 import "base" Data.Function ((.), ($))
 import "base" Data.Functor (void)
+import "base" System.IO (print)
+import "joint" Control.Joint (adapt)
 import "lens" Control.Lens ((^.))
 import "servant-server" Servant (Capture, ReqBody, Server, JSON, Post, FromHttpApiData, ToHttpApiData, type (:>), err403, throwError)
 import "telega" Network.API.Telegram.Bot (Telegram, Token (Token), telegram)
@@ -21,23 +23,24 @@ import "telega" Network.API.Telegram.Bot.Property (Accessible (access), Persista
 import Network.API.Telegram.Bot.Elections.Configuration (Environment, Settings (Settings))
 import Network.API.Telegram.Bot.Elections.Process (initiate, conduct, participate, vote)
 
-type API = "webhook" :> Capture "secret" Token :> ReqBody '[JSON] Update :> Post '[JSON] ()
+type API = "webhook" :> ReqBody '[JSON] Update :> Post '[JSON] ()
 
 deriving instance ToHttpApiData Token
 deriving instance FromHttpApiData Token
 
 server :: Settings -> Server API
-server (Settings locale token chat_id election_duration votes) secret update =
-	if secret /= token || update ^. access /= chat_id then throwError err403 else
+server (Settings locale token chat_id election_duration votes) update = do
+	if update ^. access /= chat_id then pure () else
 		liftIO . void . async . telegram token (locale, chat_id, election_duration, votes) $ webhook update
 
 webhook :: Update -> Telegram Environment ()
 webhook (Query _ (Datatext _ sender _ dttxt)) = vote sender dttxt
 webhook (Incoming _ (Direct msg_id (Group chat_id _ sender) (Command cmd))) = case cmd of
-	"initiate" -> initiate sender *> del_cmd chat_id msg_id *> conduct
-	"participate" -> participate sender *> del_cmd chat_id msg_id
-	_ -> pure ()
-webhook _ = pure ()
+	"initiate" -> adapt (print "INITIATE!") *> initiate sender *> del_cmd chat_id msg_id *> conduct
+	"participate" -> adapt (print "PARTICIPATE!") *> participate sender *> del_cmd chat_id msg_id
+	x -> adapt (print x)
+webhook x = adapt (print x)
 
 del_cmd :: ID Chat -> ID Message -> Telegram Environment ()
 del_cmd chat_id msg_id = persist $ Delete @Message chat_id msg_id
+
