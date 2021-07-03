@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-13.13
+resolver: lts-17.14
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -41,9 +41,11 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - git: git://github.com/iokasimov/telega
-  commit: 1895b8afa30b696e6d8d16efb37dbc0846219855
+  commit: 8acfee29f430b033faa1a26ad08cec4138f2ce5a
+#- archive: /Users/iokasimov/Documents/code/personal/telega.zip
+
 - git: git://github.com/iokasimov/joint
-  commit: 377a8bfb68d72e78215537cce0b56e31400fd611
+  commit: b8446484c38ead0eb8bd351d685c6e3cc4ec09b0
 
 # Override default flag values for local packages and extra-deps
 flags: {}

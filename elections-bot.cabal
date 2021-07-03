@@ -39,8 +39,7 @@ executable bot
     Network.API.Telegram.Bot.Elections.Process
     Network.API.Telegram.Bot.Elections.Server
     Network.API.Telegram.Bot.Elections.State
-  build-depends: elections-bot, base == 4.*, async, tagged, joint, lens, text, warp, servant,
-    servant-server, optparse-applicative, stm, wreq, telega
+  build-depends: elections-bot, base == 4.*, async, tagged, joint, lens, text, warp, wai, wai-extra, servant, servant-server, optparse-applicative, stm, wreq, telega
   default-extensions: GeneralizedNewtypeDeriving, NoImplicitPrelude, LambdaCase,
     OverloadedStrings, StandaloneDeriving, TypeApplications, ViewPatterns,
     ScopedTypeVariables, TypeOperators, DataKinds, PackageImports
