@@ -4,6 +4,7 @@ module Network.API.Telegram.Bot.Elections.Server (API, server) where
 
 import "async" Control.Concurrent.Async (async)
 import "base" Control.Applicative (pure, (*>))
+import "base" Control.Monad ((>>=))
 import "base" Control.Monad.IO.Class (liftIO)
 import "base" Data.Bool ((||))
 import "base" Data.Eq ((/=))
@@ -31,16 +32,17 @@ deriving instance FromHttpApiData Token
 server :: Settings -> Server API
 server (Settings locale token chat_id election_duration votes) update = do
 	if update ^. access /= chat_id then pure () else
-		liftIO . void . async . telegram token (locale, chat_id, election_duration, votes) $ webhook update
+		let action =  telegram token (locale, chat_id, election_duration, votes) $ webhook update in
+	  liftIO . void . async $ action >>= print
 
 webhook :: Update -> Telegram Environment ()
 webhook (Query _ (Datatext _ sender _ dttxt)) = vote sender dttxt
 webhook (Incoming _ (Direct msg_id (Group chat_id _ sender) (Command cmd))) = case cmd of
-	"initiate" -> adapt (print "INITIATE!") *> initiate sender *> del_cmd chat_id msg_id *> conduct
-	"participate" -> adapt (print "PARTICIPATE!") *> participate sender *> del_cmd chat_id msg_id
+	"initiate@terminus_plebiscite_bot" -> initiate sender *> del_cmd chat_id msg_id *> conduct
+	"participate@terminus_plebiscite_bot" -> participate sender *> del_cmd chat_id msg_id
 	x -> adapt (print x)
 webhook x = adapt (print x)
 
 del_cmd :: ID Chat -> ID Message -> Telegram Environment ()
-del_cmd chat_id msg_id = persist $ Delete @Message chat_id msg_id
+del_cmd chat_id msg_id = void . persist $ Delete @Message chat_id msg_id
 

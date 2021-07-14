@@ -41,8 +41,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - git: git://github.com/iokasimov/telega
-  commit: 8acfee29f430b033faa1a26ad08cec4138f2ce5a
-#- archive: /Users/iokasimov/Documents/code/personal/telega.zip
+  commit: ac8d9820788d81245f12aa1043827478265642ec
 
 - git: git://github.com/iokasimov/joint
   commit: b8446484c38ead0eb8bd351d685c6e3cc4ec09b0
